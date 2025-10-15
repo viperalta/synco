@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Typography,
   Box,
@@ -20,6 +20,9 @@ import {
 const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -27,6 +30,32 @@ const Calendar = () => {
   ];
 
   const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+  // Fetch items from API when component mounts
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch('https://synco-api.vercel.app/items/');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setItems(data);
+        console.log('Items loaded:', data);
+      } catch (err) {
+        setError(err.message);
+        console.error('Error fetching items:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchItems();
+  }, []);
 
   const getDaysInMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -258,6 +287,40 @@ const Calendar = () => {
           <Typography variant="body2" color="primary" sx={{ mt: 1, fontWeight: 'bold' }}>
             Fecha seleccionada: {selectedDate.getDate()} de {monthNames[selectedDate.getMonth()]} {selectedDate.getFullYear()}
           </Typography>
+        </Box>
+
+        {/* API Data Section */}
+        <Box sx={{ mt: 4 }}>
+          <Typography variant="h6" gutterBottom color="primary">
+            Datos de la API
+          </Typography>
+          
+          {loading && (
+            <Typography variant="body2" color="text.secondary">
+              Cargando datos...
+            </Typography>
+          )}
+          
+          {error && (
+            <Typography variant="body2" color="error">
+              Error al cargar datos: {error}
+            </Typography>
+          )}
+          
+          {!loading && !error && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Items cargados: {items.length}
+              </Typography>
+              {items.length > 0 && (
+                <Paper elevation={1} sx={{ p: 2, mt: 1, maxHeight: 200, overflow: 'auto' }}>
+                  <pre style={{ fontSize: '0.8rem', margin: 0 }}>
+                    {JSON.stringify(items, null, 2)}
+                  </pre>
+                </Paper>
+              )}
+            </Box>
+          )}
         </Box>
       </Paper>
     </Box>
