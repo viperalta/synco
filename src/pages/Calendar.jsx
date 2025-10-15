@@ -57,8 +57,21 @@ const Calendar = () => {
         }
         
         const data = await response.json();
-        setItems(data.items || data);
-        console.log(`✅ Eventos cargados: ${(data.items || data)?.length || 0} eventos`);
+        const events = data.items || data;
+        setItems(events);
+        console.log(`✅ Eventos cargados: ${events?.length || 0} eventos`);
+        
+        // Debug detallado de todos los eventos
+        console.log('📋 Lista completa de eventos:');
+        events.forEach((event, index) => {
+          console.log(`📝 Evento ${index + 1}:`, {
+            summary: event.summary,
+            start: event.start,
+            end: event.end,
+            hasDateTime: !!(event.start && event.start.dateTime),
+            dateTime: event.start?.dateTime
+          });
+        });
       } catch (err) {
         console.error('❌ Error fetching eventos:', err);
         setError(err.message);
@@ -108,14 +121,49 @@ const Calendar = () => {
     const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
     const targetDateString = targetDate.toISOString().split('T')[0]; // YYYY-MM-DD format
     
-    return items.filter(event => {
-      if (event.start && event.start.dateTime) {
-        const eventDate = new Date(event.start.dateTime);
-        const eventDateString = eventDate.toISOString().split('T')[0];
-        return eventDateString === targetDateString;
+    const filteredEvents = items.filter(event => {
+      if (event.start) {
+        // Eventos con hora específica (start.dateTime)
+        if (event.start.dateTime) {
+          const eventDate = new Date(event.start.dateTime);
+          const eventDateString = eventDate.toISOString().split('T')[0];
+          return eventDateString === targetDateString;
+        }
+        
+        // Eventos de todo el día (start.date)
+        if (event.start.date) {
+          return event.start.date === targetDateString;
+        }
       }
       return false;
     });
+
+    // Debug logging para entender qué está pasando
+    if (day === 1) { // Solo log para el primer día del mes para evitar spam
+      console.log(`🔍 Debug eventos para día ${day}:`);
+      console.log(`📅 Fecha objetivo: ${targetDateString}`);
+      console.log(`📊 Total eventos disponibles: ${items.length}`);
+      console.log(`🎯 Eventos encontrados para este día: ${filteredEvents.length}`);
+      
+      // Mostrar detalles de todos los eventos
+      items.forEach((event, index) => {
+        if (event.start) {
+          if (event.start.dateTime) {
+            const eventDate = new Date(event.start.dateTime);
+            const eventDateString = eventDate.toISOString().split('T')[0];
+            console.log(`📝 Evento ${index + 1}: "${event.summary}" - Fecha: ${eventDateString} (dateTime) - Match: ${eventDateString === targetDateString}`);
+          } else if (event.start.date) {
+            console.log(`📝 Evento ${index + 1}: "${event.summary}" - Fecha: ${event.start.date} (date) - Match: ${event.start.date === targetDateString}`);
+          } else {
+            console.log(`⚠️ Evento ${index + 1}: "${event.summary}" - SIN FECHA VÁLIDA`);
+          }
+        } else {
+          console.log(`⚠️ Evento ${index + 1}: "${event.summary}" - SIN START`);
+        }
+      });
+    }
+    
+    return filteredEvents;
   };
 
   const renderCalendarGrid = () => {
@@ -380,6 +428,25 @@ const Calendar = () => {
           </Typography>
         </Box>
 
+        {/* Debug Info */}
+        <Box sx={{ mt: 3, p: 2, backgroundColor: 'grey.100', borderRadius: 1 }}>
+          <Typography variant="h6" gutterBottom color="primary">
+            🔍 Debug Info
+          </Typography>
+          <Typography variant="body2">
+            📊 Total eventos cargados: {items?.length || 0}
+          </Typography>
+          <Typography variant="body2">
+            📅 Mes actual: {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+          </Typography>
+          <Typography variant="body2">
+            🎯 Día seleccionado: {selectedDate.getDate()} de {monthNames[selectedDate.getMonth()]}
+          </Typography>
+          <Typography variant="body2">
+            📝 Eventos en día seleccionado: {getEventsForDay(selectedDate.getDate()).length}
+          </Typography>
+        </Box>
+
         {/* Selected Day Events */}
         {(() => {
           const selectedDayEvents = getEventsForDay(selectedDate.getDate());
@@ -416,6 +483,21 @@ const Calendar = () => {
                           hour: '2-digit',
                           minute: '2-digit'
                         })}
+                      </Typography>
+                    )}
+                    {event.start && event.start.date && (
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        📅 Todo el día: {new Date(event.start.date).toLocaleDateString('es-ES', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </Typography>
+                    )}
+                    {event.start && event.start.date && (
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        🕐 Horario específico aún no definido
                       </Typography>
                     )}
                     {event.end && event.end.dateTime && (
@@ -554,6 +636,26 @@ const Calendar = () => {
                         })}
                       </Typography>
                     )}
+                  </Box>
+                )}
+
+                {/* All Day Event */}
+                {selectedEvent.start && selectedEvent.start.date && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      📅 Todo el Día
+                    </Typography>
+                    <Typography variant="body1" sx={{ ml: 2 }}>
+                      {new Date(selectedEvent.start.date).toLocaleDateString('es-ES', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
+                      🕐 Horario específico aún no definido
+                    </Typography>
                   </Box>
                 )}
 
