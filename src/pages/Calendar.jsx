@@ -25,6 +25,7 @@ import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   OpenInNew as OpenInNewIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 
 const Calendar = () => {
@@ -42,6 +43,10 @@ const Calendar = () => {
   const [attendees, setAttendees] = useState([]);
   const [totalAttendees, setTotalAttendees] = useState(0);
   const [loadingAttendees, setLoadingAttendees] = useState(false);
+  const [deletingAttendee, setDeletingAttendee] = useState(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [attendeeToDelete, setAttendeeToDelete] = useState(null);
+  const [magicWord, setMagicWord] = useState('');
 
   const monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -158,6 +163,67 @@ const Calendar = () => {
     setAttendees([]);
     setTotalAttendees(0);
     setLoadingAttendees(false);
+    setDeletingAttendee(null);
+    setConfirmDeleteOpen(false);
+    setAttendeeToDelete(null);
+    setMagicWord('');
+  };
+
+  const handleDeleteAttendee = (attendeeName) => {
+    setAttendeeToDelete(attendeeName);
+    setMagicWord('');
+    setConfirmDeleteOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (magicWord.toLowerCase() !== 'synco') {
+      setAttendanceMessage('Palabra incorrecta. Debes escribir "synco" para confirmar la eliminación.');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    if (!selectedEvent?.id || !attendeeToDelete) {
+      setAttendanceMessage('Error: No se pudo obtener la información necesaria');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    try {
+      setDeletingAttendee(attendeeToDelete);
+      setConfirmDeleteOpen(false);
+      
+      const response = await fetch(buildApiUrl(`/asistencia/${selectedEvent.id}/${encodeURIComponent(attendeeToDelete)}`), {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      setAttendanceMessage(`Se ha eliminado a ${attendeeToDelete} de la lista de asistentes`);
+      setSnackbarOpen(true);
+      
+      // Recargar la lista de asistentes
+      await fetchAttendees(selectedEvent.id);
+      
+    } catch (err) {
+      console.error('Error al eliminar asistente:', err);
+      setAttendanceMessage(`Error al eliminar asistente: ${err.message}`);
+      setSnackbarOpen(true);
+    } finally {
+      setDeletingAttendee(null);
+      setAttendeeToDelete(null);
+      setMagicWord('');
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setConfirmDeleteOpen(false);
+    setAttendeeToDelete(null);
+    setMagicWord('');
   };
 
   const handleAttendEvent = async () => {
@@ -799,18 +865,6 @@ const Calendar = () => {
                   </Box>
                 )}
 
-                {/* Description */}
-                {selectedEvent.description && (
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      📝 Descripción
-                    </Typography>
-                    <Typography variant="body1" sx={{ ml: 2, whiteSpace: 'pre-wrap' }}>
-                      {selectedEvent.description}
-                    </Typography>
-                  </Box>
-                )}
-
               </Box>
 
               {/* Attendance Section */}
@@ -865,16 +919,44 @@ const Calendar = () => {
                   <Box sx={{ mt: 2 }}>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                       {attendees.map((attendee, index) => (
-                        <Chip
-                          key={index}
-                          label={attendee}
-                          size="small"
-                          sx={{
-                            backgroundColor: 'success.main',
-                            color: 'success.contrastText',
-                            fontWeight: 'bold'
-                          }}
-                        />
+                        <Box key={index} sx={{ position: 'relative', display: 'inline-block' }}>
+                          <Chip
+                            label={attendee}
+                            size="small"
+                            sx={{
+                              backgroundColor: 'success.main',
+                              color: 'success.contrastText',
+                              fontWeight: 'bold',
+                              pr: 3 // Espacio para el icono
+                            }}
+                          />
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteAttendee(attendee)}
+                            disabled={deletingAttendee === attendee}
+                            sx={{
+                              position: 'absolute',
+                              top: -8,
+                              right: -8,
+                              backgroundColor: 'error.main',
+                              color: 'error.contrastText',
+                              width: 20,
+                              height: 20,
+                              '&:hover': {
+                                backgroundColor: 'error.dark',
+                              },
+                              '&:disabled': {
+                                backgroundColor: 'error.light',
+                              }
+                            }}
+                          >
+                            {deletingAttendee === attendee ? (
+                              <CircularProgress size={12} color="inherit" />
+                            ) : (
+                              <CloseIcon sx={{ fontSize: 12 }} />
+                            )}
+                          </IconButton>
+                        </Box>
                       ))}
                     </Box>
                   </Box>
@@ -917,6 +999,75 @@ const Calendar = () => {
           </Typography>
         </Box>
       </Backdrop>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={confirmDeleteOpen}
+        onClose={handleCancelDelete}
+        aria-labelledby="delete-confirmation-title"
+        aria-describedby="delete-confirmation-description"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: { xs: '90%', sm: '400px' },
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 0,
+            overflow: 'hidden',
+          }}
+        >
+          {/* Modal Header */}
+          <Box sx={{ p: 3, pb: 2, backgroundColor: 'error.main', color: 'error.contrastText' }}>
+            <Typography variant="h6" component="h2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              ⚠️ Confirmar Eliminación
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+              Estás a punto de eliminar a <strong>{attendeeToDelete}</strong> de la lista de asistentes
+            </Typography>
+          </Box>
+
+          {/* Modal Content */}
+          <Box sx={{ p: 3 }}>
+            <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
+              ¿Cuál es la palabra mágica?
+            </Typography>
+            
+            <TextField
+              fullWidth
+              label="Palabra mágica"
+              value={magicWord}
+              onChange={(e) => setMagicWord(e.target.value)}
+              variant="outlined"
+              placeholder="Escribe la palabra mágica aquí..."
+              sx={{ mb: 3 }}
+              autoFocus
+            />
+
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Button 
+                onClick={handleCancelDelete} 
+                variant="outlined"
+                color="inherit"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleConfirmDelete} 
+                variant="contained"
+                color="error"
+                disabled={!magicWord.trim()}
+              >
+                Eliminar
+              </Button>
+            </Box>
+          </Box>
+        </Box>
+      </Modal>
 
       {/* Snackbar for attendance messages */}
       <Snackbar
