@@ -14,6 +14,7 @@ import {
   Typography,
   Container,
   Paper,
+  Avatar,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -27,6 +28,9 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import Home from './pages/Home';
 import Calendar from './pages/Calendar';
 import Contact from './pages/Contact';
+
+// Import logo
+import logopases from './assets/logopases.png';
 
 const drawerWidth = 240;
 
@@ -58,18 +62,54 @@ function App() {
   const drawer = (
     <div>
       <Toolbar>
-        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', flexDirection: 'column', py: 2 }}>
           <IconButton
             color="inherit"
             aria-label="open drawer"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
+            sx={{ mr: 2, display: { sm: 'none' }, alignSelf: 'flex-start' }}
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold' }}>
-            SYNCO App
+          
+          {/* Logo */}
+          <Box sx={{ mb: 2 }}>
+            <Avatar
+              src={logopases}
+              alt="Pases Falsos Logo"
+              sx={{ 
+                width: 120, 
+                height: 120,
+                border: '2px solid',
+                borderColor: 'primary.main',
+                boxShadow: 2
+              }}
+            />
+          </Box>
+          
+          {/* Title */}
+          <Typography 
+            variant="h6" 
+            component="div" 
+            sx={{ 
+              fontWeight: 'bold',
+              textAlign: 'center',
+              color: 'primary.main'
+            }}
+          >
+            SYNCO
+          </Typography>
+          <Typography 
+            variant="subtitle2" 
+            component="div" 
+            sx={{ 
+              textAlign: 'center',
+              color: 'text.secondary',
+              mt: 0.5
+            }}
+          >
+            Pases Falsos
           </Typography>
         </Box>
       </Toolbar>

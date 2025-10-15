@@ -11,7 +11,11 @@ import {
   TableHead,
   TableRow,
   Chip,
+  Modal,
+  Button,
+  Divider,
 } from '@mui/material';
+import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
@@ -23,6 +27,8 @@ const Calendar = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -31,30 +37,37 @@ const Calendar = () => {
 
   const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
-  // Fetch items from API when component mounts
+  // Fetch eventos from API when component mounts
   useEffect(() => {
-    const fetchItems = async () => {
+    const fetchEventos = async () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch('https://synco-api.vercel.app/items/');
+        
+        // Usar la configuración centralizada de API
+        const calendarId = 'd7dd701e2bb45dee1e2863fddb2b15354bd4f073a1350338cb66b9ee7789f9bb@group.calendar.google.com';
+        const apiUrl = buildApiUrl(API_ENDPOINTS.EVENTOS(calendarId));
+        
+        console.log(`🔗 Llamando a la API: ${apiUrl}`);
+        
+        const response = await fetch(apiUrl);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
-        setItems(data);
-        console.log('Items loaded:', data);
+        setItems(data.items || data);
+        console.log(`✅ Eventos cargados: ${(data.items || data)?.length || 0} eventos`);
       } catch (err) {
+        console.error('❌ Error fetching eventos:', err);
         setError(err.message);
-        console.error('Error fetching items:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchItems();
+    fetchEventos();
   }, []);
 
   const getDaysInMonth = (date) => {
@@ -76,6 +89,33 @@ const Calendar = () => {
   const handleDayClick = (day) => {
     const newSelectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
     setSelectedDate(newSelectedDate);
+  };
+
+  const handleEventClick = (event) => {
+    setSelectedEvent(event);
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedEvent(null);
+  };
+
+  // Get events for a specific day
+  const getEventsForDay = (day) => {
+    if (!items || items.length === 0) return [];
+    
+    const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    const targetDateString = targetDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+    
+    return items.filter(event => {
+      if (event.start && event.start.dateTime) {
+        const eventDate = new Date(event.start.dateTime);
+        const eventDateString = eventDate.toISOString().split('T')[0];
+        return eventDateString === targetDateString;
+      }
+      return false;
+    });
   };
 
   const renderCalendarGrid = () => {
@@ -122,13 +162,16 @@ const Calendar = () => {
             currentDate.getMonth() === selectedDate.getMonth() && 
             currentDate.getFullYear() === selectedDate.getFullYear();
           
+          const dayEvents = getEventsForDay(day);
+          const hasEvents = dayEvents.length > 0;
+          
           return (
             <TableCell
               key={dayIndex}
               align="center"
               onClick={() => day && handleDayClick(day)}
               sx={{
-                height: 80,
+                height: 120, // Increased height to accommodate events
                 width: '14.28%',
                 border: '1px solid',
                 borderColor: 'divider',
@@ -143,6 +186,8 @@ const Calendar = () => {
                 } : {},
                 position: 'relative',
                 transition: 'all 0.2s ease-in-out',
+                verticalAlign: 'top',
+                padding: '4px',
               }}
             >
               {day && (
@@ -151,19 +196,65 @@ const Calendar = () => {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    justifyContent: 'center',
+                    justifyContent: 'flex-start',
                     height: '100%',
+                    width: '100%',
                   }}
                 >
+                  {/* Day number */}
                   <Typography
                     variant="body1"
                     sx={{
                       fontWeight: isSelected || isToday ? 'bold' : 'normal',
                       fontSize: '1rem',
+                      mb: 0.5,
                     }}
                   >
                     {day}
                   </Typography>
+                  
+                  {/* Events for this day */}
+                  {hasEvents && (
+                    <Box sx={{ width: '100%', maxHeight: '80px', overflow: 'hidden' }}>
+                      {dayEvents.slice(0, 2).map((event, eventIndex) => (
+                        <Chip
+                          key={eventIndex}
+                          label={event.summary || 'Evento'}
+                          size="small"
+                          clickable
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEventClick(event);
+                          }}
+                          sx={{
+                            fontSize: '0.6rem',
+                            height: 16,
+                            mb: 0.5,
+                            width: '100%',
+                            backgroundColor: 'info.light',
+                            color: 'info.contrastText',
+                            cursor: 'pointer',
+                            '&:hover': {
+                              backgroundColor: 'info.main',
+                            },
+                            '& .MuiChip-label': {
+                              padding: '0 4px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }
+                          }}
+                        />
+                      ))}
+                      {dayEvents.length > 2 && (
+                        <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
+                          +{dayEvents.length - 2} más
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                  
+                  {/* Status chips */}
                   {isToday && (
                     <Chip
                       label="Hoy"
@@ -204,7 +295,7 @@ const Calendar = () => {
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h4" component="h1" gutterBottom color="primary" align="center">
-        Calendario
+        Calendario Eventos Falsos
       </Typography>
       
       <Paper elevation={3} sx={{ p: 3, mt: 2 }}>
@@ -289,28 +380,107 @@ const Calendar = () => {
           </Typography>
         </Box>
 
-        {/* API Data Section */}
+        {/* Selected Day Events */}
+        {(() => {
+          const selectedDayEvents = getEventsForDay(selectedDate.getDate());
+          return selectedDayEvents.length > 0 && (
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="h6" gutterBottom color="primary">
+                Eventos del {selectedDate.getDate()} de {monthNames[selectedDate.getMonth()]}
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {selectedDayEvents.map((event, index) => (
+                  <Paper 
+                    key={index} 
+                    elevation={2} 
+                    sx={{ 
+                      p: 2, 
+                      cursor: 'pointer',
+                      '&:hover': {
+                        elevation: 4,
+                        backgroundColor: 'action.hover',
+                      }
+                    }}
+                    onClick={() => handleEventClick(event)}
+                  >
+                    <Typography variant="h6" gutterBottom>
+                      {event.summary}
+                    </Typography>
+                    {event.start && event.start.dateTime && (
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        📅 {new Date(event.start.dateTime).toLocaleString('es-ES', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </Typography>
+                    )}
+                    {event.end && event.end.dateTime && (
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        🕐 Hasta: {new Date(event.end.dateTime).toLocaleString('es-ES', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </Typography>
+                    )}
+                    {event.location && (
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        📍 {event.location}
+                      </Typography>
+                    )}
+                    {event.description && (
+                      <Typography variant="body2" sx={{ mt: 1 }}>
+                        {event.description}
+                      </Typography>
+                    )}
+                    {event.htmlLink && (
+                      <Box sx={{ mt: 1 }}>
+                        <a 
+                          href={event.htmlLink} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          style={{ 
+                            color: '#1976d2', 
+                            textDecoration: 'none',
+                            fontSize: '0.875rem'
+                          }}
+                        >
+                          Ver en Google Calendar →
+                        </a>
+                      </Box>
+                    )}
+                  </Paper>
+                ))}
+              </Box>
+            </Box>
+          );
+        })()}
+
+        {/* Eventos API Section */}
         <Box sx={{ mt: 4 }}>
           <Typography variant="h6" gutterBottom color="primary">
-            Datos de la API
+            Eventos del Calendario
           </Typography>
           
           {loading && (
             <Typography variant="body2" color="text.secondary">
-              Cargando datos...
+              Cargando eventos...
             </Typography>
           )}
           
           {error && (
             <Typography variant="body2" color="error">
-              Error al cargar datos: {error}
+              Error al cargar eventos: {error}
             </Typography>
           )}
           
           {!loading && !error && (
             <Box sx={{ mt: 2 }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                Items cargados: {items.length}
+                Eventos cargados: {items.length}
               </Typography>
               {items.length > 0 && (
                 <Paper elevation={1} sx={{ p: 2, mt: 1, maxHeight: 200, overflow: 'auto' }}>
@@ -323,6 +493,139 @@ const Calendar = () => {
           )}
         </Box>
       </Paper>
+
+      {/* Event Details Modal */}
+      <Modal
+        open={modalOpen}
+        onClose={handleCloseModal}
+        aria-labelledby="event-modal-title"
+        aria-describedby="event-modal-description"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: { xs: '90%', sm: '500px' },
+            maxHeight: '80vh',
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 0,
+            overflow: 'hidden',
+          }}
+        >
+          {selectedEvent && (
+            <Box>
+              {/* Modal Header */}
+              <Box sx={{ p: 3, pb: 2, backgroundColor: 'primary.main', color: 'primary.contrastText' }}>
+                <Typography variant="h5" component="h2" gutterBottom>
+                  {selectedEvent.summary}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  Detalles del evento
+                </Typography>
+              </Box>
+
+              {/* Modal Content */}
+              <Box sx={{ p: 3, maxHeight: '60vh', overflow: 'auto' }}>
+                {/* Date and Time */}
+                {selectedEvent.start && selectedEvent.start.dateTime && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      📅 Fecha y Hora
+                    </Typography>
+                    <Typography variant="body1" sx={{ ml: 2 }}>
+                      {new Date(selectedEvent.start.dateTime).toLocaleString('es-ES', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </Typography>
+                    {selectedEvent.end && selectedEvent.end.dateTime && (
+                      <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
+                        Hasta: {new Date(selectedEvent.end.dateTime).toLocaleString('es-ES', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </Typography>
+                    )}
+                  </Box>
+                )}
+
+                <Divider sx={{ my: 2 }} />
+
+                {/* Location */}
+                {selectedEvent.location && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      📍 Ubicación
+                    </Typography>
+                    <Typography variant="body1" sx={{ ml: 2 }}>
+                      {selectedEvent.location}
+                    </Typography>
+                  </Box>
+                )}
+
+                {/* Description */}
+                {selectedEvent.description && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      📝 Descripción
+                    </Typography>
+                    <Typography variant="body1" sx={{ ml: 2, whiteSpace: 'pre-wrap' }}>
+                      {selectedEvent.description}
+                    </Typography>
+                  </Box>
+                )}
+
+                {/* Status */}
+                {selectedEvent.status && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      ✅ Estado
+                    </Typography>
+                    <Chip 
+                      label={selectedEvent.status === 'confirmed' ? 'Confirmado' : selectedEvent.status}
+                      color={selectedEvent.status === 'confirmed' ? 'success' : 'default'}
+                      sx={{ ml: 2 }}
+                    />
+                  </Box>
+                )}
+
+                {/* Google Calendar Link */}
+                {selectedEvent.htmlLink && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      🔗 Enlaces
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      href={selectedEvent.htmlLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ ml: 2 }}
+                    >
+                      Ver en Google Calendar
+                    </Button>
+                  </Box>
+                )}
+              </Box>
+
+              {/* Modal Footer */}
+              <Box sx={{ p: 3, pt: 2, backgroundColor: 'grey.50', display: 'flex', justifyContent: 'flex-end' }}>
+                <Button onClick={handleCloseModal} variant="contained">
+                  Cerrar
+                </Button>
+              </Box>
+            </Box>
+          )}
+        </Box>
+      </Modal>
     </Box>
   );
 };
