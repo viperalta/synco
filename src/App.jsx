@@ -55,8 +55,8 @@ function App() {
 
   const menuItems = [
     { text: 'Home', icon: <HomeIcon />, path: '/' },
-    { text: 'Calendar', icon: <CalendarIcon />, path: '/calendar' },
-    { text: 'Contact', icon: <ContactIcon />, path: '/contact' },
+    { text: 'Calendario', icon: <CalendarIcon />, path: '/calendario' },
+    { text: 'Contacto', icon: <ContactIcon />, path: '/contacto' },
   ];
 
   const drawer = (
@@ -173,8 +173,8 @@ function App() {
               <Paper elevation={3} sx={{ p: 3, minHeight: '80vh' }}>
                 <Routes>
                   <Route path="/" element={<Home />} />
-                  <Route path="/calendar" element={<Calendar />} />
-                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/calendario" element={<Calendar />} />
+                  <Route path="/contacto" element={<Contact />} />
                 </Routes>
               </Paper>
             </Container>
