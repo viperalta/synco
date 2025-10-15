@@ -14,6 +14,8 @@ import {
   Modal,
   Button,
   Divider,
+  CircularProgress,
+  Backdrop,
 } from '@mui/material';
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 import {
@@ -728,6 +730,28 @@ const Calendar = () => {
           )}
         </Box>
       </Modal>
+
+      {/* Loading Overlay */}
+      <Backdrop
+        sx={{ 
+          color: '#fff', 
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.7)'
+        }}
+        open={loading}
+      >
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          alignItems: 'center', 
+          gap: 2
+        }}>
+          <CircularProgress size={80} color="inherit" />
+          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+            Cargando eventos...
+          </Typography>
+        </Box>
+      </Backdrop>
     </Box>
   );
 };
