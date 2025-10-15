@@ -16,11 +16,15 @@ import {
   Divider,
   CircularProgress,
   Backdrop,
+  TextField,
+  Alert,
+  Snackbar,
 } from '@mui/material';
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
+  OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material';
 
 const Calendar = () => {
@@ -31,6 +35,13 @@ const Calendar = () => {
   const [error, setError] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [attending, setAttending] = useState(false);
+  const [attendanceMessage, setAttendanceMessage] = useState('');
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [attendees, setAttendees] = useState([]);
+  const [totalAttendees, setTotalAttendees] = useState(0);
+  const [loadingAttendees, setLoadingAttendees] = useState(false);
 
   const monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -106,14 +117,106 @@ const Calendar = () => {
     setSelectedDate(newSelectedDate);
   };
 
-  const handleEventClick = (event) => {
+  const handleEventClick = async (event) => {
     setSelectedEvent(event);
     setModalOpen(true);
+    
+    // Cargar asistentes del evento
+    await fetchAttendees(event.id);
+  };
+
+  const fetchAttendees = async (eventId) => {
+    if (!eventId) return;
+    
+    try {
+      setLoadingAttendees(true);
+      const response = await fetch(buildApiUrl(`/asistencia/${eventId}`));
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setAttendees(data.attendees || []);
+      setTotalAttendees(data.total_attendees || 0);
+      
+    } catch (err) {
+      console.error('Error al obtener asistentes:', err);
+      setAttendees([]);
+      setTotalAttendees(0);
+    } finally {
+      setLoadingAttendees(false);
+    }
   };
 
   const handleCloseModal = () => {
     setModalOpen(false);
     setSelectedEvent(null);
+    setUserName('');
+    setAttending(false);
+    setAttendanceMessage('');
+    setAttendees([]);
+    setTotalAttendees(0);
+    setLoadingAttendees(false);
+  };
+
+  const handleAttendEvent = async () => {
+    if (!userName.trim()) {
+      setAttendanceMessage('Por favor ingresa tu nombre');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    if (!selectedEvent?.id) {
+      setAttendanceMessage('Error: No se pudo obtener el ID del evento');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    try {
+      setAttending(true);
+      
+      const response = await fetch(buildApiUrl('/asistir'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          event_id: selectedEvent.id,
+          user_name: userName.trim()
+        })
+      });
+
+      if (!response.ok) {
+        // Manejar error 409 (usuario ya registrado)
+        if (response.status === 409) {
+          const errorData = await response.json();
+          const errorMessage = errorData.detail || 'El usuario ya está registrado para asistir a este evento';
+          setAttendanceMessage(errorMessage);
+          setSnackbarOpen(true);
+          return;
+        }
+        
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      setAttendanceMessage(`¡Perfecto! Te has registrado para asistir al evento "${selectedEvent.summary}"`);
+      setSnackbarOpen(true);
+      
+      // Limpiar el input después del éxito
+      setUserName('');
+      
+      // Recargar la lista de asistentes
+      await fetchAttendees(selectedEvent.id);
+      
+    } catch (err) {
+      console.error('Error al registrar asistencia:', err);
+      setAttendanceMessage(`Error al registrar asistencia: ${err.message}`);
+      setSnackbarOpen(true);
+    } finally {
+      setAttending(false);
+    }
   };
 
   // Get events for a specific day
@@ -604,12 +707,35 @@ const Calendar = () => {
             <Box>
               {/* Modal Header */}
               <Box sx={{ p: 3, pb: 2, backgroundColor: 'primary.main', color: 'primary.contrastText' }}>
-                <Typography variant="h5" component="h2" gutterBottom>
-                  {selectedEvent.summary}
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                  Detalles del evento
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="h5" component="h2" gutterBottom>
+                      {selectedEvent.summary}
+                    </Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                      Detalles del evento
+                    </Typography>
+                  </Box>
+                  
+                  {/* Google Calendar Link Icon */}
+                  {selectedEvent.htmlLink && (
+                    <IconButton
+                      href={selectedEvent.htmlLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{
+                        color: 'primary.contrastText',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                        }
+                      }}
+                      title="Ver en Google Calendar"
+                    >
+                      <OpenInNewIcon />
+                    </IconButton>
+                  )}
+                </Box>
               </Box>
 
               {/* Modal Content */}
@@ -661,8 +787,6 @@ const Calendar = () => {
                   </Box>
                 )}
 
-                <Divider sx={{ my: 2 }} />
-
                 {/* Location */}
                 {selectedEvent.location && (
                   <Box sx={{ mb: 2 }}>
@@ -687,36 +811,77 @@ const Calendar = () => {
                   </Box>
                 )}
 
-                {/* Status */}
-                {selectedEvent.status && (
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      ✅ Estado
-                    </Typography>
-                    <Chip 
-                      label={selectedEvent.status === 'confirmed' ? 'Confirmado' : selectedEvent.status}
-                      color={selectedEvent.status === 'confirmed' ? 'success' : 'default'}
-                      sx={{ ml: 2 }}
-                    />
-                  </Box>
-                )}
+              </Box>
 
-                {/* Google Calendar Link */}
-                {selectedEvent.htmlLink && (
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      🔗 Enlaces
+              {/* Attendance Section */}
+              <Box sx={{ p: 3, backgroundColor: 'grey.50', borderRadius: 1 }}>
+                <Typography variant="h6" gutterBottom sx={{ color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  🎯 ¿Asistirás a este evento?
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2 }}>
+                  <TextField
+                    label="Tu nombre"
+                    variant="outlined"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    size="small"
+                    sx={{ flexGrow: 1 }}
+                    placeholder="Ingresa tu nombre completo"
+                  />
+                  <Button
+                    variant="contained"
+                    color="secondary"
+                    onClick={handleAttendEvent}
+                    disabled={attending || !userName.trim()}
+                    sx={{ 
+                      fontWeight: 'bold',
+                      minWidth: '120px',
+                      height: '40px'
+                    }}
+                  >
+                    {attending ? (
+                      <CircularProgress size={20} color="inherit" />
+                    ) : (
+                      'ASISTIRÉ'
+                    )}
+                  </Button>
+                </Box>
+              </Box>
+
+              {/* Attendees Section */}
+              <Box sx={{ p: 3, backgroundColor: 'success.light', borderRadius: 1 }}>
+                <Typography variant="h6" gutterBottom sx={{ color: 'success.contrastText', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  👥 Asistentes Confirmados ({totalAttendees})
+                </Typography>
+                
+                {loadingAttendees ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
+                    <CircularProgress size={20} color="inherit" />
+                    <Typography variant="body2" sx={{ color: 'success.contrastText' }}>
+                      Cargando asistentes...
                     </Typography>
-                    <Button
-                      variant="outlined"
-                      href={selectedEvent.htmlLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{ ml: 2 }}
-                    >
-                      Ver en Google Calendar
-                    </Button>
                   </Box>
+                ) : attendees.length > 0 ? (
+                  <Box sx={{ mt: 2 }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {attendees.map((attendee, index) => (
+                        <Chip
+                          key={index}
+                          label={attendee}
+                          size="small"
+                          sx={{
+                            backgroundColor: 'success.main',
+                            color: 'success.contrastText',
+                            fontWeight: 'bold'
+                          }}
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                ) : (
+                  <Typography variant="body2" sx={{ color: 'success.contrastText', mt: 2, fontStyle: 'italic' }}>
+                    Aún no hay asistentes confirmados para este evento.
+                  </Typography>
                 )}
               </Box>
 
@@ -752,6 +917,26 @@ const Calendar = () => {
           </Typography>
         </Box>
       </Backdrop>
+
+      {/* Snackbar for attendance messages */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={attendanceMessage.includes('ya está registrado') ? 8000 : 6000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbarOpen(false)} 
+          severity={
+            attendanceMessage.includes('Error') || attendanceMessage.includes('ya está registrado') 
+              ? 'warning' 
+              : 'success'
+          }
+          sx={{ width: '100%' }}
+        >
+          {attendanceMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
