@@ -61,7 +61,8 @@ const Calendar = () => {
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
 
-  const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  // Start weeks on Monday
+  const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
   // Fetch eventos from API when component mounts
   useEffect(() => {
@@ -114,7 +115,9 @@ const Calendar = () => {
   };
 
   const getFirstDayOfMonth = (date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+    // JS getDay(): 0=Sun,1=Mon,... Convert to Monday-based index (0=Mon,..,6=Sun)
+    const dow = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+    return (dow + 6) % 7;
   };
 
   const handlePreviousMonth = () => {
