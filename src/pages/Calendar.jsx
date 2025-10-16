@@ -27,6 +27,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Autocomplete,
 } from '@mui/material';
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 import {
@@ -282,9 +283,66 @@ const Calendar = () => {
     setMagicWord('');
   };
 
+  // Listas de asistentes por tipo de evento
+  const ASISTENTES_PASCO = [
+    'Cony', 'Vicho', 'Buri', 'Andre', 'Basti', 'Carlos', 'Carpio', 'Catalina', 
+    'Claudio Andres', 'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Lucas', 'Mariano', 
+    'Romy', 'Sofi'
+  ];
+
+  const ASISTENTES_ORIENTE = [
+    'Vicho', 'Cony', 'Lucas', 'Basti', 'Buri', 'Carlos', 'Carpio', 'Catalina', 
+    'Gabi', 'Javi Rivas', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano', 
+    'Romy'
+  ];
+
+  const LISTA_DEFAULT = [
+    'Vicho', 'Cony', 'Lucas', 'Basti', 'Buri', 'Carlos', 'Carpio', 'Catalina', 
+    'Gabi', 'Javi Rivas', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano', 
+    'Romy', 'Claudio Andres', 'Sofi', 'Fernando'
+  ];
+
+  const ENTRENAMIENTO = [
+    'Vicho', 'Cony', 'Lucas', 'Basti', 'Buri', 'Carlos', 'Carpio', 'Catalina', 
+    'Gabi', 'Javi Rivas', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano', 
+    'Romy', 'Fernando'
+  ];
+
+  // Función para obtener la lista de asistentes según el tipo de evento
+  const getAsistentesList = (eventSummary) => {
+    if (!eventSummary) return LISTA_DEFAULT;
+    
+    const summary = eventSummary.toUpperCase();
+    let baseList;
+    if (summary.includes('PASCO')) {
+      baseList = ASISTENTES_PASCO;
+    } else if (summary.includes('ORIENTE')) {
+      baseList = ASISTENTES_ORIENTE;
+    } else if (summary.includes('ENTRENAMIENTO')) {
+      baseList = ENTRENAMIENTO;
+    } else {
+      baseList = LISTA_DEFAULT;
+    }
+
+    // Filtrar nombres que ya están en asistentes confirmados o ausentes
+    const alreadyRegistered = [...attendees, ...nonAttendees];
+    return baseList.filter(name => !alreadyRegistered.includes(name));
+  };
+
+  const isValidName = (name) => {
+    const validNames = getAsistentesList(selectedEvent?.summary);
+    return validNames.includes(name.trim());
+  };
+
   const handleAttendEvent = async (willAttend = true) => {
     if (!userName.trim()) {
       setAttendanceMessage('Por favor ingresa tu nombre');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    if (!isValidName(userName)) {
+      setAttendanceMessage('Por favor selecciona un nombre válido de la lista');
       setSnackbarOpen(true);
       return;
     }
@@ -992,39 +1050,55 @@ const Calendar = () => {
                   </Typography>
                   <Box sx={{ 
                     display: 'flex', 
-                    flexDirection: { xs: 'column', sm: 'row' },
+                    flexDirection: 'column',
                     gap: 2, 
-                    alignItems: { xs: 'stretch', sm: 'center' }, 
-                    mt: 2 
+                    alignItems: 'stretch', 
+                    mt: 2,
+                    width: '100%'
                   }}>
-                    <TextField
-                      label="Tu nombre"
-                      variant="outlined"
-                      value={userName}
-                      onChange={(e) => setUserName(e.target.value)}
-                      size="small"
-                      sx={{ 
-                        flexGrow: 1,
-                        width: { xs: '100%', sm: 'auto' }
-                      }}
-                      placeholder="Ingresa tu nombre completo"
-                    />
+                    {/* Primera fila: Selector */}
+                    <Box sx={{ width: '100%' }}>
+                      <Autocomplete
+                        options={getAsistentesList(selectedEvent?.summary)}
+                        value={userName}
+                        onChange={(event, newValue) => {
+                          setUserName(newValue || '');
+                        }}
+                        onInputChange={(event, newInputValue) => {
+                          setUserName(newInputValue);
+                        }}
+                        freeSolo
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Tu nombre"
+                            variant="outlined"
+                            size="small"
+                            sx={{ 
+                              width: '100%'
+                            }}
+                            placeholder="Selecciona o escribe tu nombre"
+                          />
+                        )}
+                      />
+                    </Box>
+                    
+                    {/* Segunda fila: Botones */}
                     <Box sx={{ 
                       display: 'flex', 
-                      gap: 1, 
-                      width: { xs: '100%', sm: 'auto' },
+                      gap: 2, 
+                      width: '100%',
                       flexDirection: { xs: 'column', sm: 'row' }
                     }}>
                       <Button
                         variant="contained"
                         color="secondary"
                         onClick={() => handleAttendEvent(true)}
-                        disabled={attending || !userName.trim()}
+                        disabled={attending || !userName.trim() || !isValidName(userName)}
                         sx={{ 
                           fontWeight: 'bold',
-                          minWidth: { xs: '100%', sm: '120px' },
-                          height: '40px',
-                          flex: { xs: 1, sm: 'unset' }
+                          flex: 1,
+                          height: '40px'
                         }}
                       >
                         {attending ? (
@@ -1037,12 +1111,11 @@ const Calendar = () => {
                         variant="outlined"
                         color="inherit"
                         onClick={() => handleAttendEvent(false)}
-                        disabled={attending || !userName.trim()}
+                        disabled={attending || !userName.trim() || !isValidName(userName)}
                         sx={{ 
                           fontWeight: 'bold',
-                          minWidth: { xs: '100%', sm: '140px' },
-                          height: '40px',
-                          flex: { xs: 1, sm: 'unset' }
+                          flex: 1,
+                          height: '40px'
                         }}
                       >
                         NO ASISTIRÉ
