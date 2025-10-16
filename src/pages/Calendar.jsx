@@ -885,7 +885,12 @@ const Calendar = () => {
                 {/* Date and Time */}
                 {selectedEvent.start && selectedEvent.start.dateTime && (
                   <Box sx={{ mb: 3 }}>
-                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="h6" gutterBottom sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 1,
+                      fontSize: { xs: '1rem', sm: '1.25rem' }
+                    }}>
                       📅 Fecha y Hora
                     </Typography>
                     <Typography variant="body1" sx={{ ml: 2 }}>
@@ -912,7 +917,12 @@ const Calendar = () => {
                 {/* All Day Event */}
                 {selectedEvent.start && selectedEvent.start.date && (
                   <Box sx={{ mb: 3 }}>
-                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="h6" gutterBottom sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 1,
+                      fontSize: { xs: '1rem', sm: '1.25rem' }
+                    }}>
                       📅 Todo el Día
                     </Typography>
                     <Typography variant="body1" sx={{ ml: 2 }}>
@@ -932,7 +942,12 @@ const Calendar = () => {
                 {/* Location */}
                 {selectedEvent.location && (
                   <Box sx={{ mb: 3 }}>
-                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="h6" gutterBottom sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 1,
+                      fontSize: { xs: '1rem', sm: '1.25rem' }
+                    }}>
                       📍 Ubicación
                     </Typography>
                     <Typography variant="body1" sx={{ ml: 2 }}>
@@ -943,17 +958,32 @@ const Calendar = () => {
 
                 {/* Attendance Section */}
                 <Box sx={{ p: 3, backgroundColor: 'grey.50', borderRadius: 1, mb: 3 }}>
-                  <Typography variant="h6" gutterBottom sx={{ color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="h6" gutterBottom sx={{ 
+                    color: 'text.primary', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1,
+                    fontSize: { xs: '1rem', sm: '1.25rem' }
+                  }}>
                     🎯 ¿Asistirás a este evento?
                   </Typography>
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2 }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: 2, 
+                    alignItems: { xs: 'stretch', sm: 'center' }, 
+                    mt: 2 
+                  }}>
                     <TextField
                       label="Tu nombre"
                       variant="outlined"
                       value={userName}
                       onChange={(e) => setUserName(e.target.value)}
                       size="small"
-                      sx={{ flexGrow: 1 }}
+                      sx={{ 
+                        flexGrow: 1,
+                        width: { xs: '100%', sm: 'auto' }
+                      }}
                       placeholder="Ingresa tu nombre completo"
                     />
                     <Button
@@ -963,7 +993,7 @@ const Calendar = () => {
                       disabled={attending || !userName.trim()}
                       sx={{ 
                         fontWeight: 'bold',
-                        minWidth: '120px',
+                        minWidth: { xs: '100%', sm: '120px' },
                         height: '40px'
                       }}
                     >
@@ -978,7 +1008,13 @@ const Calendar = () => {
 
                 {/* Attendees Section */}
                 <Box sx={{ p: 3, backgroundColor: 'success.light', borderRadius: 1, mb: 3 }}>
-                  <Typography variant="h6" gutterBottom sx={{ color: 'success.contrastText', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="h6" gutterBottom sx={{ 
+                    color: 'success.contrastText', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1,
+                    fontSize: { xs: '1rem', sm: '1.25rem' }
+                  }}>
                     👥 Asistentes Confirmados ({totalAttendees})
                   </Typography>
                   
