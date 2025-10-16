@@ -245,11 +245,14 @@ const Calendar = () => {
       setDeletingAttendee(attendeeToDelete);
       setConfirmDeleteOpen(false);
       
-      const response = await fetch(buildApiUrl(`/asistencia/${selectedEvent.id}/${encodeURIComponent(attendeeToDelete)}`), {
+      const response = await fetch(buildApiUrl(`/cancelar-asistencia/${selectedEvent.id}`), {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({
+          user_name: attendeeToDelete
+        })
       });
 
       if (!response.ok) {
