@@ -571,7 +571,8 @@ const Calendar = () => {
 
   return (
     <Box sx={{ 
-      p: { xs: 0.5, sm: 2 }, 
+      px: { xs: 2, sm: 2 }, 
+      py: { xs: 0.5, sm: 2 }, 
       maxWidth: '100%', 
       overflow: 'hidden',
       width: '100%',
@@ -582,7 +583,7 @@ const Calendar = () => {
       </Typography>
       
       <Paper elevation={3} sx={{ 
-        p: { xs: 0.5, sm: 3 }, 
+        p: { xs: 2, sm: 3 }, 
         mt: 2, 
         maxWidth: '100%', 
         overflow: 'hidden',
@@ -595,7 +596,7 @@ const Calendar = () => {
           justifyContent: 'space-between', 
           alignItems: 'center', 
           mb: { xs: 2, sm: 3 },
-          px: { xs: 0.5, sm: 2 }
+          px: { xs: 0, sm: 2 }
         }}>
           <IconButton 
             onClick={handlePreviousMonth} 
@@ -647,7 +648,7 @@ const Calendar = () => {
             mb: 3, 
             justifyContent: 'center',
             flexWrap: 'wrap',
-            px: 1
+            px: 0.5
           }}>
             <FormControl size="small" sx={{ minWidth: { xs: 100, sm: 120 }, flex: 1 }}>
               <InputLabel>Mes</InputLabel>
@@ -680,14 +681,19 @@ const Calendar = () => {
           </Box>
 
           {/* Event Cards */}
-          <Grid container spacing={{ xs: 1, sm: 2 }} sx={{ px: { xs: 0.5, sm: 0 } }}>
+          <Grid container spacing={{ xs: 1, sm: 2 }} sx={{ px: { xs: 0, sm: 0 }, mx: { xs: 0, sm: 0 } }} alignItems="stretch">
             {getEventsForMonth().map((event, index) => (
-              <Grid item xs={12} key={index}>
+              <Grid item xs={12} key={index} sx={{ display: 'flex', p: { xs: 0, sm: 1 }, flex: '0 0 100%' }}>
                 <Card 
                   elevation={2}
                   sx={{ 
                     cursor: 'pointer',
-                    mx: { xs: 0.5, sm: 0 },
+                    mx: { xs: 0, sm: 0 },
+                    width: '100%',
+                    flexGrow: 1,
+                    alignSelf: 'stretch',
+                    display: 'flex',
+                    flexDirection: 'column',
                     '&:hover': {
                       elevation: 4,
                       transform: 'translateY(-2px)',
@@ -696,7 +702,7 @@ const Calendar = () => {
                   }}
                   onClick={() => handleEventClick(event)}
                 >
-                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  <CardContent sx={{ p: { xs: 2, sm: 3 }, width: '100%', wordBreak: 'break-word' }}>
                     <Typography variant="h6" component="h2" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                       {event.summary}
                     </Typography>
