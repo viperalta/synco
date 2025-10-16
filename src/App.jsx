@@ -15,6 +15,7 @@ import {
   Container,
   Paper,
   Avatar,
+  AppBar,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -63,16 +64,6 @@ function App() {
     <div>
       <Toolbar>
         <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', flexDirection: 'column', py: 2 }}>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' }, alignSelf: 'flex-start' }}
-          >
-            <MenuIcon />
-          </IconButton>
-          
           {/* Logo */}
           <Box sx={{ mb: 2 }}>
             <Avatar
@@ -116,7 +107,7 @@ function App() {
       <List>
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
-            <ListItemButton component={Link} to={item.path}>
+            <ListItemButton component={Link} to={item.path} onClick={() => setMobileOpen(false)}>
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} />
             </ListItemButton>
@@ -131,6 +122,32 @@ function App() {
       <Router>
         <Box sx={{ display: 'flex' }}>
           <CssBaseline />
+          
+          {/* AppBar para mobile */}
+          <AppBar
+            position="fixed"
+            sx={{
+              width: { sm: `calc(100% - ${drawerWidth}px)` },
+              ml: { sm: `${drawerWidth}px` },
+              display: { xs: 'block', sm: 'none' },
+            }}
+          >
+            <Toolbar>
+              <IconButton
+                color="inherit"
+                aria-label="open drawer"
+                edge="start"
+                onClick={handleDrawerToggle}
+                sx={{ mr: 2 }}
+              >
+                <MenuIcon />
+              </IconButton>
+              <Typography variant="h6" noWrap component="div">
+                SYNCO - Pases Falsos
+              </Typography>
+            </Toolbar>
+          </AppBar>
+
           <Box
             component="nav"
             sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
@@ -169,6 +186,7 @@ function App() {
               width: { sm: `calc(100% - ${drawerWidth}px)` },
             }}
           >
+            <Toolbar sx={{ display: { xs: 'block', sm: 'none' } }} />
             <Container maxWidth="lg">
               <Paper elevation={3} sx={{ p: 3, minHeight: '80vh' }}>
                 <Routes>

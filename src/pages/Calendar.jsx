@@ -19,6 +19,14 @@ import {
   TextField,
   Alert,
   Snackbar,
+  Card,
+  CardContent,
+  CardActions,
+  Grid,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 import {
@@ -115,6 +123,42 @@ const Calendar = () => {
 
   const handleNextMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
+  };
+
+  const handleMonthChange = (event) => {
+    const selectedMonth = event.target.value;
+    const newDate = new Date(currentDate.getFullYear(), selectedMonth);
+    setCurrentDate(newDate);
+  };
+
+  const handleYearChange = (event) => {
+    const selectedYear = event.target.value;
+    const newDate = new Date(selectedYear, currentDate.getMonth());
+    setCurrentDate(newDate);
+  };
+
+  // Función para obtener eventos del mes seleccionado
+  const getEventsForMonth = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    
+    return items.filter(event => {
+      let eventDate;
+      
+      if (event.start && event.start.dateTime) {
+        eventDate = new Date(event.start.dateTime);
+      } else if (event.start && event.start.date) {
+        eventDate = new Date(event.start.date);
+      } else {
+        return false;
+      }
+      
+      return eventDate.getFullYear() === year && eventDate.getMonth() === month;
+    }).sort((a, b) => {
+      const dateA = a.start.dateTime ? new Date(a.start.dateTime) : new Date(a.start.date);
+      const dateB = b.start.dateTime ? new Date(b.start.dateTime) : new Date(b.start.date);
+      return dateA - dateB;
+    });
   };
 
   const handleDayClick = (day) => {
@@ -512,55 +556,209 @@ const Calendar = () => {
   };
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h4" component="h1" gutterBottom color="primary" align="center">
+    <Box sx={{ 
+      p: { xs: 0.5, sm: 2 }, 
+      maxWidth: '100%', 
+      overflow: 'hidden',
+      width: '100%',
+      boxSizing: 'border-box'
+    }}>
+      <Typography variant="h4" component="h1" gutterBottom color="primary" align="center" sx={{ fontSize: { xs: '1.2rem', sm: '2rem' } }}>
         Calendario Eventos Falsos
       </Typography>
       
-      <Paper elevation={3} sx={{ p: 3, mt: 2 }}>
+      <Paper elevation={3} sx={{ 
+        p: { xs: 0.5, sm: 3 }, 
+        mt: 2, 
+        maxWidth: '100%', 
+        overflow: 'hidden',
+        width: '100%',
+        boxSizing: 'border-box'
+      }}>
         {/* Calendar Header */}
         <Box sx={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center', 
-          mb: 3,
-          px: 2
+          mb: { xs: 2, sm: 3 },
+          px: { xs: 0.5, sm: 2 }
         }}>
           <IconButton 
             onClick={handlePreviousMonth} 
-            size="large"
+            size="small"
             sx={{ 
               backgroundColor: 'primary.main',
               color: 'white',
               '&:hover': {
                 backgroundColor: 'primary.dark',
-              }
+              },
+              display: { xs: 'none', md: 'flex' }
             }}
           >
             <ChevronLeftIcon />
           </IconButton>
           
-          <Typography variant="h4" component="h2" sx={{ fontWeight: 'bold' }}>
+          <Typography variant="h4" component="h2" sx={{ 
+            fontWeight: 'bold',
+            fontSize: { xs: '1rem', sm: '2rem' },
+            textAlign: 'center',
+            flex: 1,
+            mx: { xs: 0.5, sm: 1 }
+          }}>
             {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
           </Typography>
           
           <IconButton 
             onClick={handleNextMonth} 
-            size="large"
+            size="small"
             sx={{ 
               backgroundColor: 'primary.main',
               color: 'white',
               '&:hover': {
                 backgroundColor: 'primary.dark',
-              }
+              },
+              display: { xs: 'none', md: 'flex' }
             }}
           >
             <ChevronRightIcon />
           </IconButton>
         </Box>
 
-        {/* Calendar Table */}
-        <TableContainer>
+        {/* Mobile View - Event Cards */}
+        <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+          {/* Month/Year Selector for Mobile */}
+          <Box sx={{ 
+            display: 'flex', 
+            gap: { xs: 1, sm: 2 }, 
+            mb: 3, 
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            px: 1
+          }}>
+            <FormControl size="small" sx={{ minWidth: { xs: 100, sm: 120 }, flex: 1 }}>
+              <InputLabel>Mes</InputLabel>
+              <Select
+                value={currentDate.getMonth()}
+                label="Mes"
+                onChange={handleMonthChange}
+              >
+                {monthNames.map((month, index) => (
+                  <MenuItem key={index} value={index}>{month}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            
+            <FormControl size="small" sx={{ minWidth: { xs: 80, sm: 100 }, flex: 1 }}>
+              <InputLabel>Año</InputLabel>
+              <Select
+                value={currentDate.getFullYear()}
+                label="Año"
+                onChange={handleYearChange}
+              >
+                {Array.from({ length: 5 }, (_, i) => {
+                  const year = new Date().getFullYear() - 1 + i;
+                  return (
+                    <MenuItem key={year} value={year}>{year}</MenuItem>
+                  );
+                })}
+              </Select>
+            </FormControl>
+          </Box>
+
+          {/* Event Cards */}
+          <Grid container spacing={{ xs: 1, sm: 2 }} sx={{ px: { xs: 0.5, sm: 0 } }}>
+            {getEventsForMonth().map((event, index) => (
+              <Grid item xs={12} key={index}>
+                <Card 
+                  elevation={2}
+                  sx={{ 
+                    cursor: 'pointer',
+                    mx: { xs: 0.5, sm: 0 },
+                    '&:hover': {
+                      elevation: 4,
+                      transform: 'translateY(-2px)',
+                      transition: 'all 0.2s ease-in-out'
+                    }
+                  }}
+                  onClick={() => handleEventClick(event)}
+                >
+                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                    <Typography variant="h6" component="h2" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                      {event.summary}
+                    </Typography>
+                    
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                      {event.start && event.start.dateTime ? (
+                        <>
+                          📅 {new Date(event.start.dateTime).toLocaleDateString('es-ES', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                          <br />
+                          🕐 {new Date(event.start.dateTime).toLocaleTimeString('es-ES', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                          {event.end && event.end.dateTime && (
+                            <> - {new Date(event.end.dateTime).toLocaleTimeString('es-ES', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}</>
+                          )}
+                        </>
+                      ) : event.start && event.start.date ? (
+                        <>
+                          📅 {new Date(event.start.date).toLocaleDateString('es-ES', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                          <br />
+                          🕐 Horario específico aún no definido
+                        </>
+                      ) : (
+                        '📅 Fecha no disponible'
+                      )}
+                    </Typography>
+                    
+                    {event.location && (
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                        📍 {event.location}
+                      </Typography>
+                    )}
+                  </CardContent>
+                  
+                  <CardActions sx={{ p: { xs: 1, sm: 2 } }}>
+                    <Button 
+                      size="small" 
+                      color="primary"
+                      sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                    >
+                      Ver detalles
+                    </Button>
+                  </CardActions>
+                </Card>
+              </Grid>
+            ))}
+            
+            {getEventsForMonth().length === 0 && (
+              <Grid item xs={12}>
+                <Paper elevation={1} sx={{ p: { xs: 2, sm: 3 }, textAlign: 'center', mx: { xs: 0.5, sm: 0 } }}>
+                  <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                    No hay eventos programados para {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+                  </Typography>
+                </Paper>
+              </Grid>
+            )}
+          </Grid>
+        </Box>
+
+        {/* Desktop View - Calendar Table */}
+        <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+          <TableContainer>
           <Table sx={{ minWidth: 650 }}>
             <TableHead>
               <TableRow>
@@ -588,9 +786,10 @@ const Calendar = () => {
             </TableBody>
           </Table>
         </TableContainer>
+        </Box>
 
-        {/* Calendar Info */}
-        <Box sx={{ mt: 3, textAlign: 'center' }}>
+        {/* Calendar Info - Desktop Only */}
+        <Box sx={{ mt: 3, textAlign: 'center', display: { xs: 'none', md: 'block' } }}>
           <Typography variant="body2" color="text.secondary">
             Haz clic en cualquier día para seleccionarlo
           </Typography>
@@ -599,152 +798,8 @@ const Calendar = () => {
           </Typography>
         </Box>
 
-        {/* Debug Info */}
-        <Box sx={{ mt: 3, p: 2, backgroundColor: 'grey.100', borderRadius: 1 }}>
-          <Typography variant="h6" gutterBottom color="primary">
-            🔍 Debug Info
-          </Typography>
-          <Typography variant="body2">
-            📊 Total eventos cargados: {items?.length || 0}
-          </Typography>
-          <Typography variant="body2">
-            📅 Mes actual: {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-          </Typography>
-          <Typography variant="body2">
-            🎯 Día seleccionado: {selectedDate.getDate()} de {monthNames[selectedDate.getMonth()]}
-          </Typography>
-          <Typography variant="body2">
-            📝 Eventos en día seleccionado: {getEventsForDay(selectedDate.getDate()).length}
-          </Typography>
-        </Box>
 
-        {/* Selected Day Events */}
-        {(() => {
-          const selectedDayEvents = getEventsForDay(selectedDate.getDate());
-          return selectedDayEvents.length > 0 && (
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="h6" gutterBottom color="primary">
-                Eventos del {selectedDate.getDate()} de {monthNames[selectedDate.getMonth()]}
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {selectedDayEvents.map((event, index) => (
-                  <Paper 
-                    key={index} 
-                    elevation={2} 
-                    sx={{ 
-                      p: 2, 
-                      cursor: 'pointer',
-                      '&:hover': {
-                        elevation: 4,
-                        backgroundColor: 'action.hover',
-                      }
-                    }}
-                    onClick={() => handleEventClick(event)}
-                  >
-                    <Typography variant="h6" gutterBottom>
-                      {event.summary}
-                    </Typography>
-                    {event.start && event.start.dateTime && (
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        📅 {new Date(event.start.dateTime).toLocaleString('es-ES', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </Typography>
-                    )}
-                    {event.start && event.start.date && (
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        📅 Todo el día: {new Date(event.start.date).toLocaleDateString('es-ES', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </Typography>
-                    )}
-                    {event.start && event.start.date && (
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        🕐 Horario específico aún no definido
-                      </Typography>
-                    )}
-                    {event.end && event.end.dateTime && (
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        🕐 Hasta: {new Date(event.end.dateTime).toLocaleString('es-ES', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </Typography>
-                    )}
-                    {event.location && (
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        📍 {event.location}
-                      </Typography>
-                    )}
-                    {event.description && (
-                      <Typography variant="body2" sx={{ mt: 1 }}>
-                        {event.description}
-                      </Typography>
-                    )}
-                    {event.htmlLink && (
-                      <Box sx={{ mt: 1 }}>
-                        <a 
-                          href={event.htmlLink} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          style={{ 
-                            color: '#1976d2', 
-                            textDecoration: 'none',
-                            fontSize: '0.875rem'
-                          }}
-                        >
-                          Ver en Google Calendar →
-                        </a>
-                      </Box>
-                    )}
-                  </Paper>
-                ))}
-              </Box>
-            </Box>
-          );
-        })()}
 
-        {/* Eventos API Section */}
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h6" gutterBottom color="primary">
-            Eventos del Calendario
-          </Typography>
-          
-          {loading && (
-            <Typography variant="body2" color="text.secondary">
-              Cargando eventos...
-            </Typography>
-          )}
-          
-          {error && (
-            <Typography variant="body2" color="error">
-              Error al cargar eventos: {error}
-            </Typography>
-          )}
-          
-          {!loading && !error && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Eventos cargados: {items.length}
-              </Typography>
-              {items.length > 0 && (
-                <Paper elevation={1} sx={{ p: 2, mt: 1, maxHeight: 200, overflow: 'auto' }}>
-                  <pre style={{ fontSize: '0.8rem', margin: 0 }}>
-                    {JSON.stringify(items, null, 2)}
-                  </pre>
-                </Paper>
-              )}
-            </Box>
-          )}
-        </Box>
       </Paper>
 
       {/* Event Details Modal */}
