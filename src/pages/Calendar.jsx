@@ -50,6 +50,8 @@ const Calendar = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [attendees, setAttendees] = useState([]);
   const [totalAttendees, setTotalAttendees] = useState(0);
+  const [nonAttendees, setNonAttendees] = useState([]);
+  const [totalNonAttendees, setTotalNonAttendees] = useState(0);
   const [loadingAttendees, setLoadingAttendees] = useState(false);
   const [deletingAttendee, setDeletingAttendee] = useState(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -191,6 +193,8 @@ const Calendar = () => {
       const data = await response.json();
       setAttendees(data.attendees || []);
       setTotalAttendees(data.total_attendees || 0);
+      setNonAttendees(data.non_attendees || []);
+      setTotalNonAttendees(data.total_non_attendees || 0);
       
     } catch (err) {
       console.error('Error al obtener asistentes:', err);
@@ -209,6 +213,8 @@ const Calendar = () => {
     setAttendanceMessage('');
     setAttendees([]);
     setTotalAttendees(0);
+    setNonAttendees([]);
+    setTotalNonAttendees(0);
     setLoadingAttendees(false);
     setDeletingAttendee(null);
     setConfirmDeleteOpen(false);
@@ -273,7 +279,7 @@ const Calendar = () => {
     setMagicWord('');
   };
 
-  const handleAttendEvent = async () => {
+  const handleAttendEvent = async (willAttend = true) => {
     if (!userName.trim()) {
       setAttendanceMessage('Por favor ingresa tu nombre');
       setSnackbarOpen(true);
@@ -296,7 +302,8 @@ const Calendar = () => {
         },
         body: JSON.stringify({
           event_id: selectedEvent.id,
-          user_name: userName.trim()
+          user_name: userName.trim(),
+          will_attend: willAttend
         })
       });
 
@@ -314,7 +321,11 @@ const Calendar = () => {
       }
 
       const result = await response.json();
-      setAttendanceMessage(`¡Perfecto! Te has registrado para asistir al evento "${selectedEvent.summary}"`);
+      setAttendanceMessage(
+        willAttend
+          ? `¡Perfecto! Te has registrado para asistir al evento "${selectedEvent.summary}"`
+          : `Has registrado que NO asistirás a "${selectedEvent.summary}"`
+      );
       setSnackbarOpen(true);
       
       // Limpiar el input después del éxito
@@ -989,23 +1000,45 @@ const Calendar = () => {
                       }}
                       placeholder="Ingresa tu nombre completo"
                     />
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      onClick={handleAttendEvent}
-                      disabled={attending || !userName.trim()}
-                      sx={{ 
-                        fontWeight: 'bold',
-                        minWidth: { xs: '100%', sm: '120px' },
-                        height: '40px'
-                      }}
-                    >
-                      {attending ? (
-                        <CircularProgress size={20} color="inherit" />
-                      ) : (
-                        'ASISTIRÉ'
-                      )}
-                    </Button>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      gap: 1, 
+                      width: { xs: '100%', sm: 'auto' },
+                      flexDirection: { xs: 'column', sm: 'row' }
+                    }}>
+                      <Button
+                        variant="contained"
+                        color="secondary"
+                        onClick={() => handleAttendEvent(true)}
+                        disabled={attending || !userName.trim()}
+                        sx={{ 
+                          fontWeight: 'bold',
+                          minWidth: { xs: '100%', sm: '120px' },
+                          height: '40px',
+                          flex: { xs: 1, sm: 'unset' }
+                        }}
+                      >
+                        {attending ? (
+                          <CircularProgress size={20} color="inherit" />
+                        ) : (
+                          'ASISTIRÉ'
+                        )}
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        color="inherit"
+                        onClick={() => handleAttendEvent(false)}
+                        disabled={attending || !userName.trim()}
+                        sx={{ 
+                          fontWeight: 'bold',
+                          minWidth: { xs: '100%', sm: '140px' },
+                          height: '40px',
+                          flex: { xs: 1, sm: 'unset' }
+                        }}
+                      >
+                        NO ASISTIRÉ
+                      </Button>
+                    </Box>
                   </Box>
                 </Box>
 
@@ -1076,6 +1109,77 @@ const Calendar = () => {
                   ) : (
                     <Typography variant="body2" sx={{ color: 'success.contrastText', mt: 2, fontStyle: 'italic' }}>
                       Aún no hay asistentes confirmados para este evento.
+                    </Typography>
+                  )}
+                </Box>
+
+                {/* Non Attendees Section */}
+                <Box sx={{ p: 3, backgroundColor: 'warning.light', borderRadius: 1, mb: 1 }}>
+                  <Typography variant="h6" gutterBottom sx={{ 
+                    color: 'warning.contrastText', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1,
+                    fontSize: { xs: '1rem', sm: '1.25rem' }
+                  }}>
+                    ❌ Ausentes ({totalNonAttendees})
+                  </Typography>
+                  
+                  {loadingAttendees ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
+                      <CircularProgress size={20} color="inherit" />
+                      <Typography variant="body2" sx={{ color: 'warning.contrastText' }}>
+                        Cargando ausentes...
+                      </Typography>
+                    </Box>
+                  ) : nonAttendees.length > 0 ? (
+                    <Box sx={{ mt: 2 }}>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        {nonAttendees.map((name, index) => (
+                          <Box key={index} sx={{ position: 'relative', display: 'inline-block' }}>
+                            <Chip
+                              label={name}
+                              size="small"
+                              sx={{
+                                backgroundColor: 'warning.main',
+                                color: 'warning.contrastText',
+                                fontWeight: 'bold',
+                                pr: 3
+                              }}
+                            />
+                            <IconButton
+                              size="small"
+                              onClick={() => handleDeleteAttendee(name)}
+                              disabled={deletingAttendee === name}
+                              sx={{
+                                position: 'absolute',
+                                top: -8,
+                                right: -8,
+                                backgroundColor: 'error.main',
+                                color: 'error.contrastText',
+                                width: 20,
+                                height: 20,
+                                '&:hover': {
+                                  backgroundColor: 'error.dark',
+                                },
+                                '&:disabled': {
+                                  backgroundColor: 'error.light',
+                                }
+                              }}
+                            >
+                              {deletingAttendee === name ? (
+                                <CircularProgress size={12} color="inherit" />
+                              ) : (
+                                <CloseIcon sx={{ fontSize: 12 }} />
+                              )}
+                            </IconButton>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" sx={{ color: 'warning.contrastText', mt: 2, fontStyle: 'italic' }}>
+                      No hay ausentes registrados para este evento.
                     </Typography>
                   )}
                 </Box>
