@@ -221,7 +221,7 @@ const Calendar = () => {
 
   const handleConfirmDelete = async () => {
     if (magicWord.toLowerCase() !== 'synco') {
-      setAttendanceMessage('Palabra incorrecta. Debes escribir "synco" para confirmar la eliminación.');
+      setAttendanceMessage('Palabra incorrecta. Comunícate con el administrador');
       setSnackbarOpen(true);
       return;
     }
@@ -816,18 +816,20 @@ const Calendar = () => {
             left: '50%',
             transform: 'translate(-50%, -50%)',
             width: { xs: '90%', sm: '500px' },
-            maxHeight: '80vh',
+            maxHeight: '90vh',
             bgcolor: 'background.paper',
             borderRadius: 2,
             boxShadow: 24,
             p: 0,
             overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
           {selectedEvent && (
-            <Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
               {/* Modal Header */}
-              <Box sx={{ p: 3, pb: 2, backgroundColor: 'primary.main', color: 'primary.contrastText' }}>
+              <Box sx={{ p: 3, pb: 2, backgroundColor: 'primary.main', color: 'primary.contrastText', flexShrink: 0 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="h5" component="h2" gutterBottom>
@@ -860,10 +862,29 @@ const Calendar = () => {
               </Box>
 
               {/* Modal Content */}
-              <Box sx={{ p: 3, maxHeight: '60vh', overflow: 'auto' }}>
+              <Box sx={{ 
+                p: 3, 
+                flex: 1,
+                overflowY: 'auto',
+                maxHeight: 'calc(90vh - 200px)', // Altura fija para forzar scroll
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  background: '#f1f1f1',
+                  borderRadius: '4px',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: '#c1c1c1',
+                  borderRadius: '4px',
+                  '&:hover': {
+                    background: '#a8a8a8',
+                  },
+                },
+              }}>
                 {/* Date and Time */}
                 {selectedEvent.start && selectedEvent.start.dateTime && (
-                  <Box sx={{ mb: 2 }}>
+                  <Box sx={{ mb: 3 }}>
                     <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       📅 Fecha y Hora
                     </Typography>
@@ -890,7 +911,7 @@ const Calendar = () => {
 
                 {/* All Day Event */}
                 {selectedEvent.start && selectedEvent.start.date && (
-                  <Box sx={{ mb: 2 }}>
+                  <Box sx={{ mb: 3 }}>
                     <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       📅 Todo el Día
                     </Typography>
@@ -910,7 +931,7 @@ const Calendar = () => {
 
                 {/* Location */}
                 {selectedEvent.location && (
-                  <Box sx={{ mb: 2 }}>
+                  <Box sx={{ mb: 3 }}>
                     <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       📍 Ubicación
                     </Typography>
@@ -920,110 +941,110 @@ const Calendar = () => {
                   </Box>
                 )}
 
-              </Box>
-
-              {/* Attendance Section */}
-              <Box sx={{ p: 3, backgroundColor: 'grey.50', borderRadius: 1 }}>
-                <Typography variant="h6" gutterBottom sx={{ color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  🎯 ¿Asistirás a este evento?
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2 }}>
-                  <TextField
-                    label="Tu nombre"
-                    variant="outlined"
-                    value={userName}
-                    onChange={(e) => setUserName(e.target.value)}
-                    size="small"
-                    sx={{ flexGrow: 1 }}
-                    placeholder="Ingresa tu nombre completo"
-                  />
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    onClick={handleAttendEvent}
-                    disabled={attending || !userName.trim()}
-                    sx={{ 
-                      fontWeight: 'bold',
-                      minWidth: '120px',
-                      height: '40px'
-                    }}
-                  >
-                    {attending ? (
-                      <CircularProgress size={20} color="inherit" />
-                    ) : (
-                      'ASISTIRÉ'
-                    )}
-                  </Button>
-                </Box>
-              </Box>
-
-              {/* Attendees Section */}
-              <Box sx={{ p: 3, backgroundColor: 'success.light', borderRadius: 1 }}>
-                <Typography variant="h6" gutterBottom sx={{ color: 'success.contrastText', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  👥 Asistentes Confirmados ({totalAttendees})
-                </Typography>
-                
-                {loadingAttendees ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
-                    <CircularProgress size={20} color="inherit" />
-                    <Typography variant="body2" sx={{ color: 'success.contrastText' }}>
-                      Cargando asistentes...
-                    </Typography>
-                  </Box>
-                ) : attendees.length > 0 ? (
-                  <Box sx={{ mt: 2 }}>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                      {attendees.map((attendee, index) => (
-                        <Box key={index} sx={{ position: 'relative', display: 'inline-block' }}>
-                          <Chip
-                            label={attendee}
-                            size="small"
-                            sx={{
-                              backgroundColor: 'success.main',
-                              color: 'success.contrastText',
-                              fontWeight: 'bold',
-                              pr: 3 // Espacio para el icono
-                            }}
-                          />
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteAttendee(attendee)}
-                            disabled={deletingAttendee === attendee}
-                            sx={{
-                              position: 'absolute',
-                              top: -8,
-                              right: -8,
-                              backgroundColor: 'error.main',
-                              color: 'error.contrastText',
-                              width: 20,
-                              height: 20,
-                              '&:hover': {
-                                backgroundColor: 'error.dark',
-                              },
-                              '&:disabled': {
-                                backgroundColor: 'error.light',
-                              }
-                            }}
-                          >
-                            {deletingAttendee === attendee ? (
-                              <CircularProgress size={12} color="inherit" />
-                            ) : (
-                              <CloseIcon sx={{ fontSize: 12 }} />
-                            )}
-                          </IconButton>
-                        </Box>
-                      ))}
-                    </Box>
-                  </Box>
-                ) : (
-                  <Typography variant="body2" sx={{ color: 'success.contrastText', mt: 2, fontStyle: 'italic' }}>
-                    Aún no hay asistentes confirmados para este evento.
+                {/* Attendance Section */}
+                <Box sx={{ p: 3, backgroundColor: 'grey.50', borderRadius: 1, mb: 3 }}>
+                  <Typography variant="h6" gutterBottom sx={{ color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1 }}>
+                    🎯 ¿Asistirás a este evento?
                   </Typography>
-                )}
+                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2 }}>
+                    <TextField
+                      label="Tu nombre"
+                      variant="outlined"
+                      value={userName}
+                      onChange={(e) => setUserName(e.target.value)}
+                      size="small"
+                      sx={{ flexGrow: 1 }}
+                      placeholder="Ingresa tu nombre completo"
+                    />
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      onClick={handleAttendEvent}
+                      disabled={attending || !userName.trim()}
+                      sx={{ 
+                        fontWeight: 'bold',
+                        minWidth: '120px',
+                        height: '40px'
+                      }}
+                    >
+                      {attending ? (
+                        <CircularProgress size={20} color="inherit" />
+                      ) : (
+                        'ASISTIRÉ'
+                      )}
+                    </Button>
+                  </Box>
+                </Box>
+
+                {/* Attendees Section */}
+                <Box sx={{ p: 3, backgroundColor: 'success.light', borderRadius: 1, mb: 3 }}>
+                  <Typography variant="h6" gutterBottom sx={{ color: 'success.contrastText', display: 'flex', alignItems: 'center', gap: 1 }}>
+                    👥 Asistentes Confirmados ({totalAttendees})
+                  </Typography>
+                  
+                  {loadingAttendees ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
+                      <CircularProgress size={20} color="inherit" />
+                      <Typography variant="body2" sx={{ color: 'success.contrastText' }}>
+                        Cargando asistentes...
+                      </Typography>
+                    </Box>
+                  ) : attendees.length > 0 ? (
+                    <Box sx={{ mt: 2 }}>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        {attendees.map((attendee, index) => (
+                          <Box key={index} sx={{ position: 'relative', display: 'inline-block' }}>
+                            <Chip
+                              label={attendee}
+                              size="small"
+                              sx={{
+                                backgroundColor: 'success.main',
+                                color: 'success.contrastText',
+                                fontWeight: 'bold',
+                                pr: 3 // Espacio para el icono
+                              }}
+                            />
+                            <IconButton
+                              size="small"
+                              onClick={() => handleDeleteAttendee(attendee)}
+                              disabled={deletingAttendee === attendee}
+                              sx={{
+                                position: 'absolute',
+                                top: -8,
+                                right: -8,
+                                backgroundColor: 'error.main',
+                                color: 'error.contrastText',
+                                width: 20,
+                                height: 20,
+                                '&:hover': {
+                                  backgroundColor: 'error.dark',
+                                },
+                                '&:disabled': {
+                                  backgroundColor: 'error.light',
+                                }
+                              }}
+                            >
+                              {deletingAttendee === attendee ? (
+                                <CircularProgress size={12} color="inherit" />
+                              ) : (
+                                <CloseIcon sx={{ fontSize: 12 }} />
+                              )}
+                            </IconButton>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" sx={{ color: 'success.contrastText', mt: 2, fontStyle: 'italic' }}>
+                      Aún no hay asistentes confirmados para este evento.
+                    </Typography>
+                  )}
+                </Box>
+
               </Box>
 
               {/* Modal Footer */}
-              <Box sx={{ p: 3, pt: 2, backgroundColor: 'grey.50', display: 'flex', justifyContent: 'flex-end' }}>
+              <Box sx={{ p: 3, pt: 2, backgroundColor: 'grey.50', display: 'flex', justifyContent: 'flex-end', flexShrink: 0 }}>
                 <Button onClick={handleCloseModal} variant="contained">
                   Cerrar
                 </Button>
