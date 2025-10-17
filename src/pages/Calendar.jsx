@@ -65,6 +65,9 @@ const Calendar = () => {
   const [isLogoHovered, setIsLogoHovered] = useState(false);
   const [shouldRotateLogo, setShouldRotateLogo] = useState(false);
   const [logoAnimationPhase, setLogoAnimationPhase] = useState('idle'); // 'idle', 'showing-rival', 'returning-to-league'
+  const [nextMatches, setNextMatches] = useState([]);
+  const [nextMatchesAttendance, setNextMatchesAttendance] = useState({});
+  const [loadingNextMatches, setLoadingNextMatches] = useState(false);
 
   const monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -109,6 +112,41 @@ const Calendar = () => {
             dateTime: event.start?.dateTime
           });
         });
+
+        // Obtener próximos 3 partidos y cargar sus datos de asistencia
+        const now = new Date();
+        
+        const nextMatches = events.filter(event => {
+          // Verificar que sea un partido (PASCO u ORIENTE)
+          const summary = event.summary?.toUpperCase() || '';
+          const isMatch = summary.includes('PASCO') || summary.includes('ORIENTE');
+          
+          if (!isMatch) return false;
+          
+          // Verificar que sea un evento futuro
+          let eventDate;
+          if (event.start && event.start.dateTime) {
+            eventDate = new Date(event.start.dateTime);
+          } else if (event.start && event.start.date) {
+            eventDate = new Date(event.start.date);
+          } else {
+            return false;
+          }
+          
+          return eventDate >= now;
+        }).sort((a, b) => {
+          const dateA = a.start.dateTime ? new Date(a.start.dateTime) : new Date(a.start.date);
+          const dateB = b.start.dateTime ? new Date(b.start.dateTime) : new Date(b.start.date);
+          return dateA - dateB;
+        }).slice(0, 3); // Solo los primeros 3
+        
+        setNextMatches(nextMatches);
+        
+        // Cargar datos de asistencia de los próximos partidos en paralelo (sin bloquear el loader principal)
+        if (nextMatches.length > 0) {
+          fetchNextMatchesAttendance(nextMatches);
+        }
+        
       } catch (err) {
         console.error('❌ Error fetching eventos:', err);
         setError(err.message);
@@ -174,6 +212,35 @@ const Calendar = () => {
     });
   };
 
+  // Función para obtener los próximos 3 partidos de PASCO u ORIENTE
+  const getNextMatches = () => {
+    const now = new Date();
+    
+    return items.filter(event => {
+      // Verificar que sea un partido (PASCO u ORIENTE)
+      const summary = event.summary?.toUpperCase() || '';
+      const isMatch = summary.includes('PASCO') || summary.includes('ORIENTE');
+      
+      if (!isMatch) return false;
+      
+      // Verificar que sea un evento futuro
+      let eventDate;
+      if (event.start && event.start.dateTime) {
+        eventDate = new Date(event.start.dateTime);
+      } else if (event.start && event.start.date) {
+        eventDate = new Date(event.start.date);
+      } else {
+        return false;
+      }
+      
+      return eventDate >= now;
+    }).sort((a, b) => {
+      const dateA = a.start.dateTime ? new Date(a.start.dateTime) : new Date(a.start.date);
+      const dateB = b.start.dateTime ? new Date(b.start.dateTime) : new Date(b.start.date);
+      return dateA - dateB;
+    }).slice(0, 3); // Solo los primeros 3
+  };
+
   const handleDayClick = (day) => {
     const newSelectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
     setSelectedDate(newSelectedDate);
@@ -236,6 +303,63 @@ const Calendar = () => {
       setTotalAttendees(0);
     } finally {
       setLoadingAttendees(false);
+    }
+  };
+
+  // Función para cargar datos de asistencia de los próximos 3 partidos
+  const fetchNextMatchesAttendance = async (matches) => {
+    if (!matches || matches.length === 0) return;
+    
+    try {
+      setLoadingNextMatches(true);
+      
+      // Crear array de promesas para llamadas paralelas
+      const attendancePromises = matches.map(async (match) => {
+        try {
+          const response = await fetch(buildApiUrl(`/asistencia/${match.id}`));
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          return {
+            eventId: match.id,
+            attendees: data.attendees || [],
+            totalAttendees: data.total_attendees || 0,
+            nonAttendees: data.non_attendees || [],
+            totalNonAttendees: data.total_non_attendees || 0
+          };
+        } catch (err) {
+          console.error(`Error al obtener asistentes para ${match.summary}:`, err);
+          return {
+            eventId: match.id,
+            attendees: [],
+            totalAttendees: 0,
+            nonAttendees: [],
+            totalNonAttendees: 0
+          };
+        }
+      });
+      
+      // Ejecutar todas las promesas en paralelo
+      const results = await Promise.all(attendancePromises);
+      
+      // Convertir resultados a objeto con eventId como clave
+      const attendanceData = {};
+      results.forEach(result => {
+        attendanceData[result.eventId] = {
+          attendees: result.attendees,
+          totalAttendees: result.totalAttendees,
+          nonAttendees: result.nonAttendees,
+          totalNonAttendees: result.totalNonAttendees
+        };
+      });
+      
+      setNextMatchesAttendance(attendanceData);
+      
+    } catch (err) {
+      console.error('Error al cargar datos de asistencia de próximos partidos:', err);
+    } finally {
+      setLoadingNextMatches(false);
     }
   };
 
@@ -942,6 +1066,275 @@ const Calendar = () => {
           </Typography>
         </Box>
 
+        {/* Próximos 3 Partidos - Desktop Only */}
+        {nextMatches.length > 0 && (
+          <Box sx={{ mt: 4, display: { xs: 'none', md: 'block' } }}>
+            <Typography variant="h5" component="h2" gutterBottom sx={{ 
+              textAlign: 'center', 
+              mb: 3, 
+              color: 'primary.main',
+              fontWeight: 'bold'
+            }}>
+              🏆 Próximos Partidos
+            </Typography>
+            
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 3, 
+              width: '100%',
+              flexWrap: 'wrap'
+            }}>
+              {nextMatches.map((match, index) => {
+                const attendanceData = nextMatchesAttendance[match.id] || {
+                  attendees: [],
+                  totalAttendees: 0,
+                  nonAttendees: [],
+                  totalNonAttendees: 0
+                };
+                
+                return (
+                  <Box 
+                    key={match.id} 
+                    sx={{ 
+                      flex: '1 1 calc(33.333% - 16px)',
+                      minWidth: '300px',
+                      maxWidth: 'calc(33.333% - 16px)'
+                    }}
+                  >
+                    <Card 
+                      elevation={3}
+                      sx={{ 
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease-in-out',
+                        '&:hover': {
+                          elevation: 6,
+                          transform: 'translateY(-4px)',
+                        }
+                      }}
+                      onClick={() => handleEventClick(match)}
+                    >
+                      {/* Card Header */}
+                      <Box sx={{ 
+                        p: 2, 
+                        backgroundColor: 'primary.main', 
+                        color: 'primary.contrastText',
+                        position: 'relative',
+                        minHeight: 80
+                      }}>
+                        <Typography variant="h6" component="h3" gutterBottom sx={{ 
+                          fontWeight: 'bold',
+                          textAlign: 'center',
+                          mb: 2
+                        }}>
+                          {match.summary}
+                        </Typography>
+                      </Box>
+
+                      {/* Logo flotante entre header y contenido */}
+                      {getLeagueLogo(match.summary) && (
+                        <Box
+                          sx={{
+                            position: 'relative',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            zIndex: 10,
+                            marginTop: '-25px',
+                            marginBottom: '-25px'
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              width: 60,
+                              height: 60,
+                              borderRadius: '50%',
+                              overflow: 'hidden',
+                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                              border: '3px solid white',
+                              backgroundColor: 'white',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              '& img': {
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                borderRadius: '50%'
+                              }
+                            }}
+                          >
+                            <img 
+                              src={getLeagueLogo(match.summary)} 
+                              alt={`Logo ${match.summary.includes('PASCO') ? 'PASCO' : 'ORIENTE'}`}
+                            />
+                          </Box>
+                        </Box>
+                      )}
+
+                      {/* Card Content */}
+                      <CardContent sx={{ flex: 1, p: 2 }}>
+                        {/* Fecha y Hora */}
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 1,
+                            mb: 1
+                          }}>
+                            📅 Fecha y Hora
+                          </Typography>
+                          <Typography variant="body1" sx={{ ml: 2, fontSize: '0.9rem' }}>
+                            {match.start && match.start.dateTime ? (
+                              <>
+                                {new Date(match.start.dateTime).toLocaleDateString('es-ES', {
+                                  weekday: 'long',
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                                <br />
+                                {new Date(match.start.dateTime).toLocaleTimeString('es-ES', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </>
+                            ) : match.start && match.start.date ? (
+                              new Date(match.start.date).toLocaleDateString('es-ES', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })
+                            ) : (
+                              'Fecha no disponible'
+                            )}
+                          </Typography>
+                        </Box>
+
+
+                        {/* Asistentes */}
+                        <Box sx={{ 
+                          p: 2, 
+                          backgroundColor: 'success.light', 
+                          borderRadius: 1,
+                          mb: 1
+                        }}>
+                          <Typography variant="body2" sx={{ 
+                            color: 'success.contrastText', 
+                            fontWeight: 'bold',
+                            mb: 1
+                          }}>
+                            👥 Asistentes ({attendanceData.totalAttendees})
+                          </Typography>
+                          
+                          {loadingNextMatches ? (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <CircularProgress size={16} color="inherit" />
+                              <Typography variant="caption" sx={{ color: 'success.contrastText' }}>
+                                Cargando asistentes...
+                              </Typography>
+                            </Box>
+                          ) : attendanceData.attendees.length > 0 ? (
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {attendanceData.attendees.map((attendee, idx) => (
+                                <Chip
+                                  key={idx}
+                                  label={attendee}
+                                  size="small"
+                                  sx={{
+                                    backgroundColor: 'success.main',
+                                    color: 'success.contrastText',
+                                    fontSize: '0.7rem',
+                                    height: 20
+                                  }}
+                                />
+                              ))}
+                            </Box>
+                          ) : (
+                            <Typography variant="caption" sx={{ 
+                              color: 'success.contrastText',
+                              fontStyle: 'italic'
+                            }}>
+                              Aún no hay asistentes
+                            </Typography>
+                          )}
+                        </Box>
+
+                        {/* Ausentes */}
+                        {loadingNextMatches ? (
+                          <Box sx={{ 
+                            p: 2, 
+                            backgroundColor: 'warning.light', 
+                            borderRadius: 1
+                          }}>
+                            <Typography variant="body2" sx={{ 
+                              color: 'warning.contrastText', 
+                              fontWeight: 'bold',
+                              mb: 1
+                            }}>
+                              ❌ Ausentes
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <CircularProgress size={16} color="inherit" />
+                              <Typography variant="caption" sx={{ color: 'warning.contrastText' }}>
+                                Cargando ausentes...
+                              </Typography>
+                            </Box>
+                          </Box>
+                        ) : attendanceData.totalNonAttendees > 0 && (
+                          <Box sx={{ 
+                            p: 2, 
+                            backgroundColor: 'warning.light', 
+                            borderRadius: 1
+                          }}>
+                            <Typography variant="body2" sx={{ 
+                              color: 'warning.contrastText', 
+                              fontWeight: 'bold',
+                              mb: 1
+                            }}>
+                              ❌ Ausentes ({attendanceData.totalNonAttendees})
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {attendanceData.nonAttendees.map((name, idx) => (
+                                <Chip
+                                  key={idx}
+                                  label={name}
+                                  size="small"
+                                  sx={{
+                                    backgroundColor: 'warning.main',
+                                    color: 'warning.contrastText',
+                                    fontSize: '0.7rem',
+                                    height: 20
+                                  }}
+                                />
+                              ))}
+                            </Box>
+                          </Box>
+                        )}
+                      </CardContent>
+
+                      {/* Card Actions */}
+                      <CardActions sx={{ p: 2, pt: 0 }}>
+                        <Button 
+                          size="small" 
+                          color="primary"
+                          variant="contained"
+                          sx={{ width: '100%' }}
+                        >
+                          Ver Detalles
+                        </Button>
+                      </CardActions>
+                    </Card>
+                  </Box>
+                );
+              })}
+            </Box>
+          </Box>
+        )}
+
 
 
       </Paper>
@@ -1462,7 +1855,7 @@ const Calendar = () => {
         }}>
           <CircularProgress size={80} color="inherit" />
           <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-            Cargando eventos...
+            {loading ? 'Cargando eventos...' : 'Cargando datos de partidos...'}
           </Typography>
         </Box>
       </Backdrop>
