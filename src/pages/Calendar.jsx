@@ -38,6 +38,7 @@ import {
 } from '@mui/icons-material';
 import logoPasco from '../assets/logo-pasco.jpg';
 import logoOriente from '../assets/logo-oriente.png';
+import logoSante from '../assets/logo-sante.jpg';
 
 const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -60,6 +61,7 @@ const Calendar = () => {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [attendeeToDelete, setAttendeeToDelete] = useState(null);
   const [magicWord, setMagicWord] = useState('');
+  const [isLogoHovered, setIsLogoHovered] = useState(false);
 
   const monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -336,8 +338,8 @@ const Calendar = () => {
     return validNames.includes(name.trim());
   };
 
-  // Función para obtener el logo según el tipo de evento
-  const getEventLogo = (eventSummary) => {
+  // Función para obtener el logo de la liga según el tipo de evento
+  const getLeagueLogo = (eventSummary) => {
     if (!eventSummary) return null;
     
     const summary = eventSummary.toUpperCase();
@@ -346,6 +348,18 @@ const Calendar = () => {
     } else if (summary.includes('ORIENTE')) {
       return logoOriente;
     }
+    return null;
+  };
+
+  // Función para obtener el logo del rival según el nombre del evento
+  const getRivalLogo = (eventSummary) => {
+    if (!eventSummary) return null;
+    
+    const summary = eventSummary.toUpperCase();
+    if (summary.includes('SANTÉ') || summary.includes('SANTE')) {
+      return logoSante;
+    }
+    // Aquí puedes agregar más rivales en el futuro
     return null;
   };
 
@@ -957,8 +971,8 @@ const Calendar = () => {
                 </Box>
               </Box>
 
-              {/* Logo flotante según tipo de evento */}
-              {getEventLogo(selectedEvent.summary) && (
+              {/* Logo flotante con efecto flip */}
+              {getLeagueLogo(selectedEvent.summary) && (
                 <Box
                   sx={{
                     position: 'absolute',
@@ -967,26 +981,83 @@ const Calendar = () => {
                     zIndex: 1000,
                     width: 80,
                     height: 80,
-                    borderRadius: '50%',
-                    overflow: 'hidden',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                    border: '3px solid white',
-                    backgroundColor: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    '& img': {
+                    perspective: getRivalLogo(selectedEvent.summary) ? '1000px' : 'none',
+                    cursor: getRivalLogo(selectedEvent.summary) ? 'pointer' : 'default'
+                  }}
+                  onMouseEnter={() => getRivalLogo(selectedEvent.summary) && setIsLogoHovered(true)}
+                  onMouseLeave={() => getRivalLogo(selectedEvent.summary) && setIsLogoHovered(false)}
+                >
+                  <Box
+                    sx={{
+                      position: 'relative',
                       width: '100%',
                       height: '100%',
-                      objectFit: 'cover',
-                      borderRadius: '50%'
-                    }
-                  }}
-                >
-                  <img 
-                    src={getEventLogo(selectedEvent.summary)} 
-                    alt={`Logo ${selectedEvent.summary.includes('PASCO') ? 'PASCO' : 'ORIENTE'}`}
-                  />
+                      transformStyle: getRivalLogo(selectedEvent.summary) ? 'preserve-3d' : 'flat',
+                      transition: getRivalLogo(selectedEvent.summary) ? 'transform 0.6s ease-in-out' : 'none',
+                      transform: getRivalLogo(selectedEvent.summary) && isLogoHovered ? 'rotateY(180deg)' : 'rotateY(0deg)'
+                    }}
+                  >
+                    {/* Cara frontal - Logo de la liga */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        width: '100%',
+                        height: '100%',
+                        backfaceVisibility: getRivalLogo(selectedEvent.summary) ? 'hidden' : 'visible',
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                        border: '3px solid white',
+                        backgroundColor: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        '& img': {
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          borderRadius: '50%'
+                        }
+                      }}
+                    >
+                      <img 
+                        src={getLeagueLogo(selectedEvent.summary)} 
+                        alt={`Logo ${selectedEvent.summary.includes('PASCO') ? 'PASCO' : 'ORIENTE'}`}
+                      />
+                    </Box>
+
+                    {/* Cara trasera - Logo del rival (solo si existe) */}
+                    {getRivalLogo(selectedEvent.summary) && (
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          width: '100%',
+                          height: '100%',
+                          backfaceVisibility: 'hidden',
+                          borderRadius: '50%',
+                          overflow: 'hidden',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                          border: '3px solid white',
+                          backgroundColor: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transform: 'rotateY(180deg)',
+                          '& img': {
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            borderRadius: '50%'
+                          }
+                        }}
+                      >
+                        <img 
+                          src={getRivalLogo(selectedEvent.summary)} 
+                          alt="Logo del rival"
+                        />
+                      </Box>
+                    )}
+                  </Box>
                 </Box>
               )}
 
