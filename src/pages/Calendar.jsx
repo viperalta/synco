@@ -36,6 +36,8 @@ import {
   OpenInNew as OpenInNewIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
+import logoPasco from '../assets/logo-pasco.jpg';
+import logoOriente from '../assets/logo-oriente.png';
 
 const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -332,6 +334,19 @@ const Calendar = () => {
   const isValidName = (name) => {
     const validNames = getAsistentesList(selectedEvent?.summary);
     return validNames.includes(name.trim());
+  };
+
+  // Función para obtener el logo según el tipo de evento
+  const getEventLogo = (eventSummary) => {
+    if (!eventSummary) return null;
+    
+    const summary = eventSummary.toUpperCase();
+    if (summary.includes('PASCO')) {
+      return logoPasco;
+    } else if (summary.includes('ORIENTE')) {
+      return logoOriente;
+    }
+    return null;
   };
 
   const handleAttendEvent = async (willAttend = true) => {
@@ -941,6 +956,39 @@ const Calendar = () => {
                   )}
                 </Box>
               </Box>
+
+              {/* Logo flotante según tipo de evento */}
+              {getEventLogo(selectedEvent.summary) && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: 90,
+                    right: 20,
+                    zIndex: 1000,
+                    width: 80,
+                    height: 80,
+                    borderRadius: '50%',
+                    overflow: 'hidden',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                    border: '3px solid white',
+                    backgroundColor: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    '& img': {
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      borderRadius: '50%'
+                    }
+                  }}
+                >
+                  <img 
+                    src={getEventLogo(selectedEvent.summary)} 
+                    alt={`Logo ${selectedEvent.summary.includes('PASCO') ? 'PASCO' : 'ORIENTE'}`}
+                  />
+                </Box>
+              )}
 
               {/* Modal Content */}
               <Box sx={{ 
