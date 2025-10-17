@@ -425,6 +425,12 @@ const Calendar = () => {
       // Recargar la lista de asistentes
       await fetchAttendees(selectedEvent.id);
       
+      // Actualizar datos de asistencia en las cards de próximos partidos si el evento está ahí
+      const isInNextMatches = nextMatches.some(match => match.id === selectedEvent.id);
+      if (isInNextMatches) {
+        await fetchNextMatchesAttendance(nextMatches);
+      }
+      
     } catch (err) {
       console.error('Error al eliminar asistente:', err);
       setAttendanceMessage(`Error al eliminar asistente: ${err.message}`);
@@ -581,6 +587,12 @@ const Calendar = () => {
       
       // Recargar la lista de asistentes
       await fetchAttendees(selectedEvent.id);
+      
+      // Actualizar datos de asistencia en las cards de próximos partidos si el evento está ahí
+      const isInNextMatches = nextMatches.some(match => match.id === selectedEvent.id);
+      if (isInNextMatches) {
+        await fetchNextMatchesAttendance(nextMatches);
+      }
       
     } catch (err) {
       console.error('Error al registrar asistencia:', err);
