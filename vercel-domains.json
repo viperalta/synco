@@ -1,0 +1,24 @@
+{
+  "domains": {
+    "primary": "api.pasesfalsos.cl",
+    "fallback": "synco-api.vercel.app"
+  },
+  "configuration": {
+    "description": "Configuración de dominios para la API de SYNCO",
+    "notes": [
+      "El dominio primario (api.pasesfalsos.cl) debe estar configurado en Vercel",
+      "El dominio fallback (synco-api.vercel.app) es el dominio por defecto de Vercel",
+      "La aplicación detecta automáticamente cuál dominio usar",
+      "Si el dominio primario no está disponible, usa automáticamente el fallback"
+    ],
+    "vercel_setup": {
+      "steps": [
+        "1. Ir a la configuración del proyecto en Vercel",
+        "2. Navegar a la sección 'Domains'",
+        "3. Agregar 'api.pasesfalsos.cl' como custom domain",
+        "4. Configurar el DNS según las instrucciones de Vercel",
+        "5. Verificar que el dominio esté funcionando"
+      ]
+    }
+  }
+}

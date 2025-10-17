@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import {
   Box,
@@ -30,6 +30,9 @@ import Home from './pages/Home';
 import Calendar from './pages/Calendar';
 import Contact from './pages/Contact';
 
+// Import API configuration
+import { initializeApiUrl } from './config/api';
+
 // Import logo
 import logopases from './assets/logopases.png';
 
@@ -49,6 +52,13 @@ const theme = createTheme({
 
 function App() {
   const [mobileOpen, setMobileOpen] = React.useState(false);
+
+  // Inicializar la configuración de la API al cargar la aplicación
+  useEffect(() => {
+    initializeApiUrl().catch(error => {
+      console.error('Error inicializando API:', error);
+    });
+  }, []);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -188,7 +198,7 @@ function App() {
           >
             <Toolbar sx={{ display: { xs: 'block', sm: 'none' } }} />
             <Container maxWidth="lg">
-              <Paper elevation={3} sx={{ p: 3, minHeight: '80vh' }}>
+              <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 }, minHeight: '80vh' }}>
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/calendario" element={<Calendar />} />
