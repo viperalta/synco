@@ -285,7 +285,7 @@ const Calendar = () => {
 
   // Listas de asistentes por tipo de evento
   const ASISTENTES_PASCO = [
-    'Cony', 'Vicho', 'Buri', 'Andre', 'Bastian', 'Carlos', 'Diego', 'Catalina', 
+    'Cony', 'Vicho', 'Buri', 'Andre', 'Bastian', 'Diego', 'Catalina', 
     'Claudio andres', 'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Lucas', 'Mariano', 
     'Romy', 'Sofi'
   ];
@@ -303,7 +303,7 @@ const Calendar = () => {
   ];
 
   const ENTRENO = [
-    'Vicho', 'Cony', 'Lucas', 'Bastian', 'Buri', 'Carlos', 'Diego', 'Catalina', 
+    'Vicho', 'Cony', 'Lucas', 'Bastian', 'Buri', 'Diego', 'Catalina', 
     'Gabi', 'Javi Rivas', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano', 
     'Romy', 'Fernando'
   ];
