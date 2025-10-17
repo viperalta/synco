@@ -62,6 +62,8 @@ const Calendar = () => {
   const [attendeeToDelete, setAttendeeToDelete] = useState(null);
   const [magicWord, setMagicWord] = useState('');
   const [isLogoHovered, setIsLogoHovered] = useState(false);
+  const [shouldRotateLogo, setShouldRotateLogo] = useState(false);
+  const [logoAnimationPhase, setLogoAnimationPhase] = useState('idle'); // 'idle', 'showing-rival', 'returning-to-league'
 
   const monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -180,6 +182,32 @@ const Calendar = () => {
     setSelectedEvent(event);
     setModalOpen(true);
     
+    // Activar animación de giro si hay tanto liga como equipo
+    const hasLeagueLogo = getLeagueLogo(event.summary);
+    const hasRivalLogo = getRivalLogo(event.summary);
+    if (hasLeagueLogo && hasRivalLogo) {
+      // Fase 1: Comenzar con logo de liga (idle)
+      setLogoAnimationPhase('idle');
+      setShouldRotateLogo(false);
+      
+      // Fase 2: Después de 0.5s, girar para mostrar rival
+      setTimeout(() => {
+        setLogoAnimationPhase('showing-rival');
+        setShouldRotateLogo(true);
+      }, 500);
+      
+      // Fase 3: Después de 2.5s, regresar al logo de liga
+      setTimeout(() => {
+        setLogoAnimationPhase('returning-to-league');
+        setShouldRotateLogo(false);
+      }, 2500);
+      
+      // Fase 4: Después de 3.5s, volver a idle
+      setTimeout(() => {
+        setLogoAnimationPhase('idle');
+      }, 3500);
+    }
+    
     // Cargar asistentes del evento
     await fetchAttendees(event.id);
   };
@@ -225,6 +253,8 @@ const Calendar = () => {
     setConfirmDeleteOpen(false);
     setAttendeeToDelete(null);
     setMagicWord('');
+    setShouldRotateLogo(false);
+    setLogoAnimationPhase('idle');
   };
 
   const handleDeleteAttendee = (attendeeName) => {
@@ -994,7 +1024,20 @@ const Calendar = () => {
                       height: '100%',
                       transformStyle: getRivalLogo(selectedEvent.summary) ? 'preserve-3d' : 'flat',
                       transition: getRivalLogo(selectedEvent.summary) ? 'transform 0.6s ease-in-out' : 'none',
-                      transform: getRivalLogo(selectedEvent.summary) && isLogoHovered ? 'rotateY(180deg)' : 'rotateY(0deg)'
+                      transform: (() => {
+                        // Si está en hover, priorizar el hover sobre la animación automática
+                        if (getRivalLogo(selectedEvent.summary) && isLogoHovered) {
+                          return 'rotateY(180deg)';
+                        }
+                        
+                        // Animación automática: mostrar rival cuando shouldRotateLogo es true
+                        if (shouldRotateLogo && getRivalLogo(selectedEvent.summary)) {
+                          return 'rotateY(180deg)';
+                        }
+                        
+                        // Por defecto, mostrar logo de liga
+                        return 'rotateY(0deg)';
+                      })()
                     }}
                   >
                     {/* Cara frontal - Logo de la liga */}
