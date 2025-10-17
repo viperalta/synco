@@ -39,6 +39,7 @@ import {
 import logoPasco from '../assets/logo-pasco.jpg';
 import logoOriente from '../assets/logo-oriente.png';
 import logoSante from '../assets/logo-sante.jpg';
+import logoBohemios from '../assets/logo-bohemios.jpg';
 
 const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -388,6 +389,9 @@ const Calendar = () => {
     const summary = eventSummary.toUpperCase();
     if (summary.includes('SANTÉ') || summary.includes('SANTE')) {
       return logoSante;
+    }
+    if (summary.includes('BOHEMIOS')) {
+      return logoBohemios;
     }
     // Aquí puedes agregar más rivales en el futuro
     return null;
