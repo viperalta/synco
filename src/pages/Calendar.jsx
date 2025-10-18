@@ -29,7 +29,7 @@ import {
   InputLabel,
   Autocomplete,
 } from '@mui/material';
-import { buildApiUrl, API_ENDPOINTS } from '../config/api';
+import { buildApiUrl, apiCall, API_ENDPOINTS } from '../config/api';
 import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
@@ -86,11 +86,10 @@ const Calendar = () => {
         
         // Usar la configuración centralizada de API
         const calendarId = 'd7dd701e2bb45dee1e2863fddb2b15354bd4f073a1350338cb66b9ee7789f9bb@group.calendar.google.com';
-        const apiUrl = buildApiUrl(API_ENDPOINTS.EVENTOS(calendarId));
         
-        console.log(`🔗 Llamando a la API: ${apiUrl}`);
+        console.log(`🔗 Llamando a la API: ${API_ENDPOINTS.EVENTOS(calendarId)}`);
         
-        const response = await fetch(apiUrl);
+        const response = await apiCall(API_ENDPOINTS.EVENTOS(calendarId));
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -285,7 +284,7 @@ const Calendar = () => {
     
     try {
       setLoadingAttendees(true);
-      const response = await fetch(buildApiUrl(`/asistencia/${eventId}`));
+      const response = await apiCall(`/asistencia/${eventId}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -316,7 +315,7 @@ const Calendar = () => {
       // Crear array de promesas para llamadas paralelas
       const attendancePromises = matches.map(async (match) => {
         try {
-          const response = await fetch(buildApiUrl(`/asistencia/${match.id}`));
+          const response = await apiCall(`/asistencia/${match.id}`);
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
@@ -405,7 +404,7 @@ const Calendar = () => {
       setDeletingAttendee(attendeeToDelete);
       setConfirmDeleteOpen(false);
       
-      const response = await fetch(buildApiUrl(`/cancelar-asistencia/${selectedEvent.id}`), {
+      const response = await apiCall(`/cancelar-asistencia/${selectedEvent.id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -549,7 +548,7 @@ const Calendar = () => {
     try {
       setAttending(true);
       
-      const response = await fetch(buildApiUrl('/asistir'), {
+      const response = await apiCall('/asistir', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

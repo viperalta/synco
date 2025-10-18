@@ -29,6 +29,15 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import Home from './pages/Home';
 import Calendar from './pages/Calendar';
 import Contact from './pages/Contact';
+import Login from './pages/Login';
+import AuthCallback from './pages/AuthCallback';
+
+// Import components
+import UserProfile from './components/UserProfile';
+import ProtectedRoute from './components/ProtectedRoute';
+
+// Import contexts
+import { AuthProvider } from './contexts/AuthContext';
 
 // Import API configuration
 import { initializeApiUrl } from './config/api';
@@ -114,6 +123,7 @@ function App() {
           </Typography>
         </Box>
       </Toolbar>
+      
       <List>
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
@@ -124,91 +134,112 @@ function App() {
           </ListItem>
         ))}
       </List>
+      
+      {/* User Profile */}
+      <Box sx={{ px: 2, pb: 2, mt: 'auto' }}>
+        <UserProfile />
+      </Box>
     </div>
   );
 
   return (
     <ThemeProvider theme={theme}>
-      <Router>
-        <Box sx={{ display: 'flex' }}>
-          <CssBaseline />
-          
-          {/* AppBar para mobile */}
-          <AppBar
-            position="fixed"
-            sx={{
-              width: { sm: `calc(100% - ${drawerWidth}px)` },
-              ml: { sm: `${drawerWidth}px` },
-              display: { xs: 'block', sm: 'none' },
-            }}
-          >
-            <Toolbar>
-              <IconButton
-                color="inherit"
-                aria-label="open drawer"
-                edge="start"
-                onClick={handleDrawerToggle}
-                sx={{ mr: 2 }}
-              >
-                <MenuIcon />
-              </IconButton>
-              <Typography variant="h6" noWrap component="div">
-                SYNCO - Pases Falsos
-              </Typography>
-            </Toolbar>
-          </AppBar>
-
-          <Box
-            component="nav"
-            sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-            aria-label="mailbox folders"
-          >
-            <Drawer
-              variant="temporary"
-              open={mobileOpen}
-              onClose={handleDrawerToggle}
-              ModalProps={{
-                keepMounted: true,
-              }}
+      <AuthProvider>
+        <Router>
+          <Box sx={{ display: 'flex' }}>
+            <CssBaseline />
+            
+            {/* AppBar para mobile */}
+            <AppBar
+              position="fixed"
               sx={{
+                width: { sm: `calc(100% - ${drawerWidth}px)` },
+                ml: { sm: `${drawerWidth}px` },
                 display: { xs: 'block', sm: 'none' },
-                '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
               }}
             >
-              {drawer}
-            </Drawer>
-            <Drawer
-              variant="permanent"
+              <Toolbar>
+                <IconButton
+                  color="inherit"
+                  aria-label="open drawer"
+                  edge="start"
+                  onClick={handleDrawerToggle}
+                  sx={{ mr: 2 }}
+                >
+                  <MenuIcon />
+                </IconButton>
+                <Typography variant="h6" noWrap component="div">
+                  SYNCO - Pases Falsos
+                </Typography>
+              </Toolbar>
+            </AppBar>
+
+            <Box
+              component="nav"
+              sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+              aria-label="mailbox folders"
+            >
+              <Drawer
+                variant="temporary"
+                open={mobileOpen}
+                onClose={handleDrawerToggle}
+                ModalProps={{
+                  keepMounted: true,
+                }}
+                sx={{
+                  display: { xs: 'block', sm: 'none' },
+                  '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+                }}
+              >
+                {drawer}
+              </Drawer>
+              <Drawer
+                variant="permanent"
+                sx={{
+                  display: { xs: 'none', sm: 'block' },
+                  '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+                }}
+                open
+              >
+                {drawer}
+              </Drawer>
+            </Box>
+            <Box
+              component="main"
               sx={{
-                display: { xs: 'none', sm: 'block' },
-                '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+                flexGrow: 1,
+              p: { xs: 0.25, sm: 3 },
+                width: { sm: `calc(100% - ${drawerWidth}px)` },
               }}
-              open
             >
-              {drawer}
-            </Drawer>
+              <Toolbar sx={{ display: { xs: 'block', sm: 'none' } }} />
+              <Container maxWidth="lg">
+                <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 }, minHeight: '80vh' }}>
+                  <Routes>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/auth/callback" element={<AuthCallback />} />
+                    <Route path="/" element={
+                      <ProtectedRoute>
+                        <Home />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/calendario" element={
+                      <ProtectedRoute>
+                        <Calendar />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/contacto" element={
+                      <ProtectedRoute>
+                        <Contact />
+                      </ProtectedRoute>
+                    } />
+                  </Routes>
+                </Paper>
+              </Container>
+            </Box>
           </Box>
-          <Box
-            component="main"
-            sx={{
-              flexGrow: 1,
-            p: { xs: 0.25, sm: 3 },
-              width: { sm: `calc(100% - ${drawerWidth}px)` },
-            }}
-          >
-            <Toolbar sx={{ display: { xs: 'block', sm: 'none' } }} />
-            <Container maxWidth="lg">
-              <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 }, minHeight: '80vh' }}>
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/calendario" element={<Calendar />} />
-                  <Route path="/contacto" element={<Contact />} />
-                </Routes>
-              </Paper>
-            </Container>
-          </Box>
-        </Box>
-      </Router>
+        </Router>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

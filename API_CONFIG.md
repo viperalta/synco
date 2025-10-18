@@ -59,14 +59,25 @@ proxy: {
 ```javascript
 import { buildApiUrl, apiCall, API_ENDPOINTS } from '../config/api';
 
-// Construir URL automáticamente
+// Construir URL automáticamente (para casos especiales)
 const apiUrl = buildApiUrl(API_ENDPOINTS.EVENTOS(calendarId));
 
-// Hacer llamadas con retry automático
+// Hacer llamadas con retry automático (RECOMENDADO)
 const response = await apiCall(API_ENDPOINTS.EVENTOS(calendarId), {
   method: 'GET'
 });
+
+// Para llamadas POST/PUT/DELETE
+const response = await apiCall('/asistir', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify(data)
+});
 ```
+
+**⚠️ Importante**: Siempre usa `apiCall()` en lugar de `fetch()` directo para aprovechar el sistema de retry automático.
 
 ### 4. Inicialización de la API
 La aplicación inicializa automáticamente la configuración de la API al cargar:

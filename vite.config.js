@@ -13,6 +13,13 @@ export default defineConfig({
   },
   server: {
     historyApiFallback: true,
+    // Configurar CORS para imágenes
+    cors: {
+      origin: true,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    },
     // Proxy solo para desarrollo local
     proxy: {
       '/api': {
