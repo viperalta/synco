@@ -11,6 +11,7 @@ const Home = () => {
       <Typography variant="h5" component="p" color="text.secondary">
         Bienvenido a la aplicación SYNCO de Pases Falsos
       </Typography>
+      
       <Paper elevation={2} sx={{ mt: 4, p: 3, maxWidth: 600, mx: 'auto' }}>
         <Typography variant="body1" paragraph>
           Esta es una página experimental para probar tecnologías que pudiesen ayudar al equipo de voleyball pases falsos.

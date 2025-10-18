@@ -29,6 +29,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [justLoggedOut, setJustLoggedOut] = useState(false);
 
   // Función para verificar sesión existente usando cookies httpOnly
   const checkExistingSession = async () => {
@@ -167,6 +168,14 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       
+      // Verificar si el usuario acaba de hacer logout
+      if (justLoggedOut) {
+        console.log('🚪 Usuario acaba de hacer logout, saltando verificación de sesión');
+        setJustLoggedOut(false);
+        setLoading(false);
+        return;
+      }
+      
       // 1. Verificar si hay sesión activa
       const hasSession = await checkExistingSession();
       if (hasSession) {
@@ -201,6 +210,77 @@ export const AuthProvider = ({ children }) => {
     return document.cookie.includes('session_token') || 
            document.cookie.includes('sessionid') ||
            document.cookie.includes('connect.sid');
+  };
+
+  // Función para limpiar todas las cookies de sesión manualmente
+  const clearSessionCookies = () => {
+    try {
+      console.log('🧹 Limpiando cookies de sesión manualmente...');
+      
+      // Obtener el dominio actual
+      const domain = window.location.hostname;
+      const isLocalhost = domain === 'localhost' || domain === '127.0.0.1';
+      
+      // Lista de cookies de sesión comunes
+      const sessionCookies = [
+        'session_token',
+        'sessionid', 
+        'connect.sid',
+        'auth_token',
+        'access_token',
+        'refresh_token'
+      ];
+      
+      // Limpiar cada cookie de sesión
+      sessionCookies.forEach(cookieName => {
+        // Limpiar para el dominio actual
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        
+        // Limpiar para subdominios si no es localhost
+        if (!isLocalhost) {
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${domain};`;
+        }
+        
+        // Para localhost, también intentar limpiar con diferentes configuraciones
+        if (isLocalhost) {
+          // Limpiar sin dominio específico
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+          // Limpiar con localhost
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=localhost;`;
+          // Limpiar con 127.0.0.1
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=127.0.0.1;`;
+        }
+      });
+      
+      console.log('✅ Cookies de sesión limpiadas manualmente');
+    } catch (error) {
+      console.error('Error limpiando cookies manualmente:', error);
+    }
+  };
+
+  // Función para debuggear el estado de las cookies
+  const debugCookieState = () => {
+    console.log('🍪 Estado actual de las cookies:');
+    console.log('Document.cookie:', document.cookie);
+    
+    const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+      const [name, value] = cookie.trim().split('=');
+      if (name) acc[name] = value;
+      return acc;
+    }, {});
+    
+    console.log('Cookies parseadas:', cookies);
+    
+    const sessionCookies = ['session_token', 'sessionid', 'connect.sid', 'auth_token'];
+    const activeSessionCookies = sessionCookies.filter(name => cookies[name]);
+    
+    if (activeSessionCookies.length > 0) {
+      console.log('⚠️ Cookies de sesión activas encontradas:', activeSessionCookies);
+    } else {
+      console.log('✅ No hay cookies de sesión activas');
+    }
+    
+    return activeSessionCookies.length > 0;
   };
 
   // Función de login inteligente que detecta el tipo de usuario
@@ -321,20 +401,74 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('🚪 Cerrando sesión...');
       
-      await fetch(`${getBackendUrl()}/auth/logout`, {
+      // Debug: verificar estado de cookies antes del logout
+      console.log('🔍 Estado de cookies antes del logout:');
+      debugCookieState();
+      
+      // Hacer la llamada al backend para eliminar la cookie
+      const response = await fetch(`${getBackendUrl()}/auth/logout`, {
         method: 'POST',
         credentials: 'include'
       });
+      
+      // Verificar que la respuesta sea exitosa
+      if (!response.ok) {
+        console.warn('⚠️ El servidor no pudo cerrar la sesión correctamente:', response.status);
+      } else {
+        console.log('✅ Backend confirmó el logout exitosamente');
+        
+        // Verificar las cookies que el backend intentó eliminar
+        const setCookieHeader = response.headers.get('set-cookie');
+        if (setCookieHeader) {
+          console.log('🍪 Cookie eliminada por el backend:', setCookieHeader);
+        }
+      }
       
       // Limpiar estado local
       setUser(null);
       setIsAuthenticated(false);
       localStorage.removeItem('user_email');
       
+      // Marcar que el usuario acaba de hacer logout
+      setJustLoggedOut(true);
+      
+      // Limpiar cookies manualmente como respaldo
+      clearSessionCookies();
+      
+      // Hacer una verificación adicional de la sesión para asegurar que se eliminó
+      console.log('🔍 Verificando sesión después del logout...');
+      try {
+        const sessionCheck = await fetch(`${getBackendUrl()}/auth/session`, {
+          credentials: 'include',
+          method: 'GET'
+        });
+        
+        if (sessionCheck.ok) {
+          console.warn('⚠️ El backend aún reporta una sesión activa después del logout');
+          const sessionData = await sessionCheck.json();
+          console.log('Datos de sesión:', sessionData);
+        } else {
+          console.log('✅ El backend confirma que no hay sesión activa');
+        }
+      } catch (error) {
+        console.log('ℹ️ No se pudo verificar la sesión en el backend:', error.message);
+      }
+      
+      // Debug: verificar estado de cookies después de la limpieza
+      console.log('🔍 Estado de cookies después de la limpieza:');
+      const stillHasCookies = debugCookieState();
+      
+      if (stillHasCookies) {
+        console.warn('⚠️ Aún hay cookies de sesión activas después del logout');
+      } else {
+        console.log('✅ Todas las cookies de sesión fueron eliminadas correctamente');
+      }
+      
       console.log('✅ Sesión cerrada exitosamente');
       
-      // Recargar para limpiar cualquier estado
-      window.location.reload();
+      // NO recargar la página, solo limpiar el estado
+      // Esto evita que se ejecute el silent login automático
+      console.log('🔄 Estado limpiado, usuario deslogueado');
       
     } catch (error) {
       console.error('Error cerrando sesión:', error);
@@ -342,6 +476,18 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
       localStorage.removeItem('user_email');
+      
+      // Marcar que el usuario acaba de hacer logout
+      setJustLoggedOut(true);
+      
+      // Limpiar cookies manualmente como respaldo
+      clearSessionCookies();
+      
+      // Debug: verificar estado de cookies después del error
+      console.log('🔍 Estado de cookies después del error:');
+      debugCookieState();
+      
+      console.log('🔄 Estado limpiado después del error, usuario deslogueado');
     }
   };
 
@@ -426,6 +572,7 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     isAuthenticated,
+    justLoggedOut,
     setUser,
     setIsAuthenticated,
     handleGoogleLogin,
@@ -434,6 +581,10 @@ export const AuthProvider = ({ children }) => {
     getAuthToken,
     authenticatedApiCall,
     checkUserExists,
+    // Funciones de debug y utilidades
+    debugCookieState,
+    clearSessionCookies,
+    hasActiveSession,
     // Mantener compatibilidad con nombres anteriores
     loginWithGoogle: loginWithGoogle, // Usar la nueva función inteligente
     loginWithGoogleForceSelection: handleChangeAccount,
