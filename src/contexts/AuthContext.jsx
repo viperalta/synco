@@ -577,8 +577,17 @@ export const AuthProvider = ({ children }) => {
 
   // Función para verificar si el token está expirado
   const isTokenExpired = () => {
-    if (!tokenExpiry) return true;
-    return new Date() >= new Date(tokenExpiry);
+    if (!tokenExpiry) {
+      console.log('⚠️ No hay fecha de expiración, considerando token como válido');
+      return false; // Si no hay fecha de expiración, considerar como válido
+    }
+    const isExpired = new Date() >= new Date(tokenExpiry);
+    console.log('🕐 Verificando expiración:', {
+      expiry: tokenExpiry,
+      current: new Date().toISOString(),
+      isExpired
+    });
+    return isExpired;
   };
 
   // Función para obtener un nuevo access token
@@ -662,6 +671,12 @@ export const AuthProvider = ({ children }) => {
       isExpired: isTokenExpired()
     });
     
+    // Si hay token y no está expirado, usarlo
+    if (accessToken && !isTokenExpired()) {
+      console.log('✅ Token válido disponible:', accessToken ? `${accessToken.substring(0, 20)}...` : 'null');
+      return accessToken;
+    }
+    
     // Si no hay token o está expirado, intentar renovarlo
     if (!accessToken || isTokenExpired()) {
       console.log('🔄 Token no disponible o expirado, intentando obtener nuevo token...');
@@ -680,9 +695,9 @@ export const AuthProvider = ({ children }) => {
           return refreshedToken;
         } catch (refreshError) {
           console.log('❌ No se pudo renovar el token:', refreshError.message);
-          // No limpiar la sesión automáticamente, solo retornar null
-          // La sesión se mantiene activa con cookies httpOnly
-          return null;
+          console.log('🔄 Usando token existente aunque pueda estar expirado...');
+          // Si no se puede renovar, usar el token existente si lo hay
+          return accessToken || null;
         }
       }
     }
