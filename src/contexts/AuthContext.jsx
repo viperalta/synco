@@ -125,91 +125,37 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Función para intentar silent login usando popup
+  // Función para intentar silent login usando iframe (sin popup)
   const attemptSilentLogin = async (email) => {
-    return new Promise((resolve) => {
-      try {
-        console.log('🔇 Intentando silent login para:', email);
-        
-        // Crear popup para silent login
-        const popup = window.open(
-          `${getBackendUrl()}/auth/google/silent?email=${encodeURIComponent(email)}`,
-          'google-silent-login',
-          'width=500,height=600,scrollbars=yes,resizable=yes,status=yes,toolbar=no,menubar=no,location=no'
-        );
-        
-        if (!popup || popup.closed) {
-          console.log('❌ Popup bloqueado por el navegador');
-          resolve(false);
-          return;
-        }
-        
-        // Escuchar respuesta del popup
-        const handleMessage = (event) => {
-          console.log('📨 Mensaje recibido del popup:', event.data);
-          
-          if (event.data.type === 'LOGIN_OK') {
-            console.log('✅ Silent login exitoso');
-            // Silent login exitoso, verificar sesión
-            checkExistingSession().then(() => {
-              resolve(true);
-            });
-            cleanup();
-          } else if (event.data.type === 'LOGIN_FAILED') {
-            console.log('❌ Silent login falló:', event.data.error);
-            resolve(false);
-            cleanup();
-          }
-        };
-        
-        // Función para limpiar recursos
-        const cleanup = () => {
-          if (popup && !popup.closed) {
-            popup.close();
-          }
-          window.removeEventListener('message', handleMessage);
-        };
-        
-        // Agregar listener para mensajes
-        window.addEventListener('message', handleMessage);
-        
-        // Verificar si el popup se cerró manualmente
-        const checkClosed = setInterval(() => {
-          if (popup.closed) {
-            console.log('⏰ Popup cerrado manualmente');
-            clearInterval(checkClosed);
-            resolve(false);
-            cleanup();
-          }
-        }, 1000);
-        
-        // Timeout después de 15 segundos
-        setTimeout(() => {
-          console.log('⏰ Timeout en silent login');
-          clearInterval(checkClosed);
-          resolve(false);
-          cleanup();
-        }, 15000);
-        
-      } catch (error) {
-        console.error('Error en silent login:', error);
-        resolve(false);
+    try {
+      console.log('🔇 Intentando silent login para:', email);
+      
+      // En lugar de usar popup, hacer una llamada directa al backend
+      // El backend manejará la autenticación silenciosa internamente
+      const response = await fetch(`${getBackendUrl()}/auth/google/silent`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email })
+      });
+      
+      if (response.ok) {
+        console.log('✅ Silent login exitoso');
+        // Verificar sesión después del silent login
+        const sessionValid = await checkExistingSession();
+        return sessionValid;
+      } else {
+        console.log('❌ Silent login falló:', response.status);
+        return false;
       }
-    });
-  };
-
-  // Función para manejar errores de popup bloqueado
-  const handlePopupBlocked = () => {
-    console.log('⚠️ Popup bloqueado, ofreciendo alternativa');
-    // Mostrar mensaje al usuario o usar redirección completa
-    const useRedirect = confirm(
-      'Tu navegador bloqueó la ventana emergente. ¿Quieres continuar con el login en la misma ventana?'
-    );
-    
-    if (useRedirect) {
-      window.location.href = `${getBackendUrl()}/auth/google/login`;
+    } catch (error) {
+      console.error('Error en silent login:', error);
+      return false;
     }
   };
+
 
   // Función para verificar autenticación al cargar la aplicación
   const checkAuthStatus = async () => {
@@ -360,7 +306,7 @@ export const AuthProvider = ({ children }) => {
     console.log('2. DevTools → Network → Response Headers → Set-Cookie');
   };
 
-  // Función de login inteligente que detecta el tipo de usuario
+  // Función de login inteligente simplificada (sin popups)
   const loginWithGoogle = async () => {
     try {
       console.log('🚀 Iniciando login inteligente con Google');
@@ -383,24 +329,6 @@ export const AuthProvider = ({ children }) => {
         const silentLoginSuccess = await attemptSilentLogin(savedEmail);
         if (silentLoginSuccess) {
           return; // Silent login exitoso
-        }
-        
-        // Si silent login falla, verificar si fue por popup bloqueado
-        console.log('❌ Silent login falló, verificando causa...');
-        
-        // Intentar detectar si el popup fue bloqueado
-        try {
-          const testPopup = window.open('', 'test-popup', 'width=1,height=1');
-          if (!testPopup || testPopup.closed) {
-            handlePopupBlocked();
-            return;
-          } else {
-            testPopup.close();
-          }
-        } catch (e) {
-          // Popup definitivamente bloqueado
-          handlePopupBlocked();
-          return;
         }
       }
       
