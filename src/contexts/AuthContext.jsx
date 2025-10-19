@@ -30,6 +30,8 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [justLoggedOut, setJustLoggedOut] = useState(false);
+  const [accessToken, setAccessToken] = useState(null);
+  const [tokenExpiry, setTokenExpiry] = useState(null);
 
   // Función para verificar sesión existente usando cookies httpOnly
   const checkExistingSession = async () => {
@@ -47,10 +49,24 @@ export const AuthProvider = ({ children }) => {
       if (response.ok) {
         const userData = await response.json();
         console.log('✅ Sesión activa encontrada:', userData.user);
+        console.log('🔍 Datos completos de la respuesta:', userData);
         
         // Actualizar estado de autenticación
         setUser(userData.user);
         setIsAuthenticated(true);
+        
+        // Guardar access token si está disponible
+        if (userData.access_token) {
+          console.log('🔑 Access token obtenido:', userData.access_token);
+          setAccessToken(userData.access_token);
+          setTokenExpiry(userData.token_expiry);
+          
+          // Guardar token en localStorage para persistencia
+          localStorage.setItem('access_token', userData.access_token);
+          localStorage.setItem('token_expiry', userData.token_expiry);
+        } else {
+          console.log('⚠️ No se encontró access_token en la respuesta');
+        }
         
         // Guardar email para silent login futuro
         if (userData.user && userData.user.email) {
@@ -283,6 +299,35 @@ export const AuthProvider = ({ children }) => {
     return activeSessionCookies.length > 0;
   };
 
+  // Función temporal para debuggear cookies con detalles completos
+  const debugCookieDetails = () => {
+    console.log('🔍 Debug detallado de cookies:');
+    
+    // Obtener todas las cookies con sus atributos
+    const cookieDetails = document.cookie.split(';').map(cookie => {
+      const [name, value] = cookie.trim().split('=');
+      return { name, value };
+    });
+    
+    console.log('Cookies con valores:', cookieDetails);
+    
+    // Verificar cookies de sesión específicas
+    const sessionCookies = ['session_token', 'sessionid', 'connect.sid', 'auth_token'];
+    sessionCookies.forEach(cookieName => {
+      const cookie = cookieDetails.find(c => c.name === cookieName);
+      if (cookie) {
+        console.log(`✅ ${cookieName}: ${cookie.value}`);
+      } else {
+        console.log(`❌ ${cookieName}: No encontrada`);
+      }
+    });
+    
+    // Verificar headers de respuesta recientes
+    console.log('💡 Para ver detalles completos de cookies, revisa:');
+    console.log('1. DevTools → Application → Cookies');
+    console.log('2. DevTools → Network → Response Headers → Set-Cookie');
+  };
+
   // Función de login inteligente que detecta el tipo de usuario
   const loginWithGoogle = async () => {
     try {
@@ -338,9 +383,40 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Función para inicializar tokens desde localStorage
+  const initializeTokens = () => {
+    const savedToken = localStorage.getItem('access_token');
+    const savedExpiry = localStorage.getItem('token_expiry');
+    
+    console.log('🔍 Inicializando tokens desde localStorage...');
+    console.log('📦 Token guardado:', !!savedToken);
+    console.log('📦 Expiry guardado:', savedExpiry);
+    
+    if (savedToken && savedExpiry) {
+      // Verificar si el token no está expirado
+      if (new Date() < new Date(savedExpiry)) {
+        console.log('🔑 Token válido encontrado en localStorage');
+        setAccessToken(savedToken);
+        setTokenExpiry(savedExpiry);
+        return true;
+      } else {
+        console.log('⏰ Token expirado en localStorage, limpiando...');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('token_expiry');
+      }
+    } else {
+      console.log('❌ No hay tokens guardados en localStorage');
+    }
+    
+    return false;
+  };
+
   // Verificar autenticación al cargar la aplicación
   useEffect(() => {
     const initializeAuth = async () => {
+      // Inicializar tokens desde localStorage
+      initializeTokens();
+      
       // Primero procesar callback si existe
       await processLoginCallback();
       
@@ -427,7 +503,11 @@ export const AuthProvider = ({ children }) => {
       // Limpiar estado local
       setUser(null);
       setIsAuthenticated(false);
+      setAccessToken(null);
+      setTokenExpiry(null);
       localStorage.removeItem('user_email');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('token_expiry');
       
       // Marcar que el usuario acaba de hacer logout
       setJustLoggedOut(true);
@@ -475,7 +555,11 @@ export const AuthProvider = ({ children }) => {
       // Limpiar estado local incluso si hay error
       setUser(null);
       setIsAuthenticated(false);
+      setAccessToken(null);
+      setTokenExpiry(null);
       localStorage.removeItem('user_email');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('token_expiry');
       
       // Marcar que el usuario acaba de hacer logout
       setJustLoggedOut(true);
@@ -491,38 +575,155 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Función para obtener el token de autenticación (mantener compatibilidad)
-  const getAuthToken = () => {
-    // En el nuevo sistema, el token se maneja via cookies httpOnly
-    // Esta función se mantiene para compatibilidad pero no es necesaria
-    return null;
+  // Función para verificar si el token está expirado
+  const isTokenExpired = () => {
+    if (!tokenExpiry) return true;
+    return new Date() >= new Date(tokenExpiry);
+  };
+
+  // Función para obtener un nuevo access token
+  const getNewAccessToken = async () => {
+    try {
+      console.log('🔄 Obteniendo nuevo access token...');
+      
+      const response = await fetch(`${getBackendUrl()}/auth/token`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Token obtenido exitosamente');
+        
+        setAccessToken(data.access_token);
+        setTokenExpiry(data.token_expiry);
+        
+        // Guardar token en localStorage
+        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('token_expiry', data.token_expiry);
+        
+        return data.access_token;
+      } else {
+        console.log('❌ Error obteniendo token:', response.status);
+        throw new Error('No se pudo obtener el token');
+      }
+    } catch (error) {
+      console.error('Error obteniendo token:', error);
+      throw error;
+    }
+  };
+
+  // Función para renovar el access token
+  const refreshAccessToken = async () => {
+    try {
+      console.log('🔄 Renovando access token...');
+      
+      const response = await fetch(`${getBackendUrl()}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Token renovado exitosamente');
+        
+        setAccessToken(data.access_token);
+        setTokenExpiry(data.token_expiry);
+        
+        // Guardar token renovado en localStorage
+        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('token_expiry', data.token_expiry);
+        
+        return data.access_token;
+      } else {
+        console.log('❌ Error renovando token:', response.status);
+        throw new Error('No se pudo renovar el token');
+      }
+    } catch (error) {
+      console.error('Error renovando token:', error);
+      throw error;
+    }
+  };
+
+  // Función para obtener el token de autenticación
+  const getAuthToken = async () => {
+    console.log('🔑 getAuthToken llamado - accessToken:', !!accessToken, 'expired:', isTokenExpired());
+    console.log('🔍 Estado actual del token:', { 
+      hasToken: !!accessToken, 
+      tokenValue: accessToken ? `${accessToken.substring(0, 20)}...` : 'null',
+      expiry: tokenExpiry 
+    });
+    
+    // Si no hay token o está expirado, intentar renovarlo
+    if (!accessToken || isTokenExpired()) {
+      console.log('🔄 Token no disponible o expirado, intentando obtener nuevo token...');
+      try {
+        // Primero intentar obtener un nuevo token
+        const newToken = await getNewAccessToken();
+        console.log('✅ Nuevo token obtenido exitosamente');
+        return newToken;
+      } catch (error) {
+        console.log('❌ No se pudo obtener nuevo token, intentando renovar...');
+        try {
+          const refreshedToken = await refreshAccessToken();
+          console.log('✅ Token renovado exitosamente');
+          return refreshedToken;
+        } catch (refreshError) {
+          console.log('❌ No se pudo renovar el token:', refreshError.message);
+          // No limpiar la sesión automáticamente, solo retornar null
+          // La sesión se mantiene activa con cookies httpOnly
+          return null;
+        }
+      }
+    }
+    
+    console.log('✅ Token válido disponible');
+    return accessToken;
   };
 
   // Función para hacer llamadas autenticadas a la API
   const authenticatedApiCall = async (endpoint, options = {}) => {
     try {
-      const response = await fetch(`/api${endpoint}`, {
+      console.log('🌐 authenticatedApiCall iniciada para:', endpoint);
+      
+      // Obtener el token de autenticación
+      const token = await getAuthToken();
+      
+      // Preparar headers
+      const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+      };
+      
+      // Solo agregar Authorization si hay token
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        console.log('🔑 Token Bearer agregado a headers');
+      } else {
+        console.log('⚠️ No hay token disponible, usando solo cookies');
+      }
+      
+      const url = `${getBackendUrl()}${endpoint}`;
+      console.log('📡 Haciendo llamada a:', url);
+      
+      const response = await fetch(url, {
         ...options,
         credentials: 'include', // Importante para enviar cookies
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers
-        }
+        headers
       });
+      
+      console.log('📥 Respuesta recibida:', response.status, response.statusText);
       
       if (!response.ok) {
         if (response.status === 401) {
-          // Token expirado, limpiar sesión
-          console.log('🔒 Sesión expirada, limpiando estado local');
-          setUser(null);
-          setIsAuthenticated(false);
-          localStorage.removeItem('user_email');
-          
-          // Opcional: redirigir al login si es una página protegida
-          if (window.location.pathname !== '/login') {
-            console.log('🔄 Redirigiendo al login...');
-            window.location.href = '/login';
-          }
+          console.log('🔒 Error 401 - Token inválido o expirado');
+          throw new Error('Token de autenticación inválido o expirado');
         } else if (response.status === 403) {
           console.log('🚫 Acceso denegado');
           throw new Error('No tienes permisos para realizar esta acción');
@@ -573,16 +774,22 @@ export const AuthProvider = ({ children }) => {
     loading,
     isAuthenticated,
     justLoggedOut,
+    accessToken,
+    tokenExpiry,
     setUser,
     setIsAuthenticated,
     handleGoogleLogin,
     handleChangeAccount,
     handleLogout,
     getAuthToken,
+    getNewAccessToken,
+    refreshAccessToken,
+    isTokenExpired,
     authenticatedApiCall,
     checkUserExists,
     // Funciones de debug y utilidades
     debugCookieState,
+    debugCookieDetails,
     clearSessionCookies,
     hasActiveSession,
     // Mantener compatibilidad con nombres anteriores

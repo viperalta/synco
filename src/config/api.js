@@ -147,6 +147,85 @@ export const apiCall = async (endpoint, options = {}) => {
   }
 }
 
+// Función para hacer llamadas autenticadas con token Bearer
+export const authenticatedApiCall = async (endpoint, options = {}, getToken) => {
+  const baseUrl = getCurrentApiBaseUrl()
+  const url = `${baseUrl}${endpoint}`
+  
+  try {
+    // Obtener el token de autenticación
+    const token = await getToken()
+    
+    // Preparar headers
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers
+    }
+    
+    // Solo agregar Authorization si hay token
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+    
+    const response = await fetch(url, {
+      ...options,
+      credentials: 'include', // Importante para enviar cookies
+      headers
+    })
+    
+    if (!response.ok) {
+      // Para errores 401, crear un error más específico
+      if (response.status === 401) {
+        const error = new Error(`HTTP error! status: ${response.status}`)
+        error.status = 401
+        throw error
+      }
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    return response
+  } catch (error) {
+    // Si falla y estamos usando el dominio primario, intentar con el fallback
+    if (baseUrl === API_DOMAINS.PRIMARY) {
+      console.warn(`⚠️ Fallo con dominio primario, intentando con fallback: ${error.message}`)
+      const fallbackUrl = `${API_DOMAINS.FALLBACK}${endpoint}`
+      
+      try {
+        const token = await getToken()
+        
+        // Preparar headers para fallback
+        const fallbackHeaders = {
+          'Content-Type': 'application/json',
+          ...options.headers
+        }
+        
+        // Solo agregar Authorization si hay token
+        if (token) {
+          fallbackHeaders['Authorization'] = `Bearer ${token}`
+        }
+        
+        const fallbackResponse = await fetch(fallbackUrl, {
+          ...options,
+          credentials: 'include', // Importante para enviar cookies en fallback también
+          headers: fallbackHeaders
+        })
+        
+        if (!fallbackResponse.ok) {
+          throw new Error(`HTTP error! status: ${fallbackResponse.status}`)
+        }
+        
+        console.log(`✅ Fallback exitoso usando: ${API_DOMAINS.FALLBACK}`)
+        return fallbackResponse
+      } catch (fallbackError) {
+        console.error(`❌ Fallo también con dominio fallback: ${fallbackError.message}`)
+        throw fallbackError
+      }
+    }
+    
+    throw error
+  }
+}
+
 // Log de configuración (solo en desarrollo)
 if (import.meta.env.DEV) {
   console.log(`🔗 API configurada para: ${getCurrentApiBaseUrl()}`)

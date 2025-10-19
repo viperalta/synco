@@ -1,15 +1,10 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import {
   Box,
   CssBaseline,
   Drawer,
   IconButton,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
   Toolbar,
   Typography,
   Container,
@@ -19,9 +14,6 @@ import {
 } from '@mui/material';
 import {
   Menu as MenuIcon,
-  Home as HomeIcon,
-  CalendarToday as CalendarIcon,
-  ContactPhone as ContactIcon,
 } from '@mui/icons-material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 
@@ -31,10 +23,14 @@ import Calendar from './pages/Calendar';
 import Contact from './pages/Contact';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
+import Users from './pages/Users';
 
 // Import components
 import UserProfile from './components/UserProfile';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminProtectedRoute from './components/AdminProtectedRoute';
+import RoleProtectedRoute from './components/RoleProtectedRoute';
+import MenuItems from './components/MenuItems';
 
 // Import contexts
 import { AuthProvider } from './contexts/AuthContext';
@@ -73,11 +69,6 @@ function App() {
     setMobileOpen(!mobileOpen);
   };
 
-  const menuItems = [
-    { text: 'Home', icon: <HomeIcon />, path: '/' },
-    { text: 'Calendario', icon: <CalendarIcon />, path: '/calendario' },
-    { text: 'Contacto', icon: <ContactIcon />, path: '/contacto' },
-  ];
 
   const drawer = (
     <div>
@@ -124,16 +115,7 @@ function App() {
         </Box>
       </Toolbar>
       
-      <List>
-        {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton component={Link} to={item.path} onClick={() => setMobileOpen(false)}>
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
+      <MenuItems onItemClick={() => setMobileOpen(false)} />
       
       {/* User Profile */}
       <Box sx={{ px: 2, pb: 2, mt: 'auto' }}>
@@ -224,14 +206,19 @@ function App() {
                       </ProtectedRoute>
                     } />
                     <Route path="/calendario" element={
-                      <ProtectedRoute>
+                      <RoleProtectedRoute allowedRoles={['player', 'coach', 'admin']}>
                         <Calendar />
-                      </ProtectedRoute>
+                      </RoleProtectedRoute>
                     } />
                     <Route path="/contacto" element={
                       <ProtectedRoute>
                         <Contact />
                       </ProtectedRoute>
+                    } />
+                    <Route path="/usuarios" element={
+                      <AdminProtectedRoute>
+                        <Users />
+                      </AdminProtectedRoute>
                     } />
                   </Routes>
                 </Paper>
