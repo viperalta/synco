@@ -74,6 +74,10 @@ const Users = () => {
       
       console.log('🔍 Iniciando fetchUsers...');
       
+      // Debug: Verificar token antes de la llamada
+      const token = await getAuthToken();
+      console.log('🔍 Token disponible para /admin/users:', token ? `${token.substring(0, 20)}...` : 'null');
+      
       const response = await authenticatedApiCall('/admin/users', {
         method: 'GET'
       });

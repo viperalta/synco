@@ -657,7 +657,9 @@ export const AuthProvider = ({ children }) => {
     console.log('🔍 Estado actual del token:', { 
       hasToken: !!accessToken, 
       tokenValue: accessToken ? `${accessToken.substring(0, 20)}...` : 'null',
-      expiry: tokenExpiry 
+      expiry: tokenExpiry,
+      currentTime: new Date().toISOString(),
+      isExpired: isTokenExpired()
     });
     
     // Si no hay token o está expirado, intentar renovarlo
@@ -665,14 +667,16 @@ export const AuthProvider = ({ children }) => {
       console.log('🔄 Token no disponible o expirado, intentando obtener nuevo token...');
       try {
         // Primero intentar obtener un nuevo token
+        console.log('🔄 Intentando obtener nuevo token desde /auth/token...');
         const newToken = await getNewAccessToken();
-        console.log('✅ Nuevo token obtenido exitosamente');
+        console.log('✅ Nuevo token obtenido exitosamente:', newToken ? `${newToken.substring(0, 20)}...` : 'null');
         return newToken;
       } catch (error) {
-        console.log('❌ No se pudo obtener nuevo token, intentando renovar...');
+        console.log('❌ No se pudo obtener nuevo token, intentando renovar...', error.message);
         try {
+          console.log('🔄 Intentando renovar token desde /auth/refresh...');
           const refreshedToken = await refreshAccessToken();
-          console.log('✅ Token renovado exitosamente');
+          console.log('✅ Token renovado exitosamente:', refreshedToken ? `${refreshedToken.substring(0, 20)}...` : 'null');
           return refreshedToken;
         } catch (refreshError) {
           console.log('❌ No se pudo renovar el token:', refreshError.message);
@@ -683,7 +687,7 @@ export const AuthProvider = ({ children }) => {
       }
     }
     
-    console.log('✅ Token válido disponible');
+    console.log('✅ Token válido disponible:', accessToken ? `${accessToken.substring(0, 20)}...` : 'null');
     return accessToken;
   };
 
@@ -704,13 +708,14 @@ export const AuthProvider = ({ children }) => {
       // Solo agregar Authorization si hay token
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
-        console.log('🔑 Token Bearer agregado a headers');
+        console.log('🔑 Token Bearer agregado a headers:', `Bearer ${token.substring(0, 20)}...`);
       } else {
         console.log('⚠️ No hay token disponible, usando solo cookies');
       }
       
       const url = `${getBackendUrl()}${endpoint}`;
       console.log('📡 Haciendo llamada a:', url);
+      console.log('📋 Headers enviados:', headers);
       
       const response = await fetch(url, {
         ...options,
