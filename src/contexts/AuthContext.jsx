@@ -671,39 +671,47 @@ export const AuthProvider = ({ children }) => {
       isExpired: isTokenExpired()
     });
     
-    // Si hay token y no está expirado, usarlo
-    if (accessToken && !isTokenExpired()) {
-      console.log('✅ Token válido disponible:', accessToken ? `${accessToken.substring(0, 20)}...` : 'null');
+    // Siempre intentar obtener un token fresco desde /auth/session primero
+    console.log('🔄 Obteniendo token fresco desde /auth/session...');
+    try {
+      const response = await fetch(`${getBackendUrl()}/auth/session`, {
+        credentials: 'include',
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const userData = await response.json();
+        if (userData.access_token) {
+          console.log('✅ Token fresco obtenido desde /auth/session:', userData.access_token ? `${userData.access_token.substring(0, 20)}...` : 'null');
+          
+          // Actualizar el estado con el token fresco
+          setAccessToken(userData.access_token);
+          setTokenExpiry(userData.token_expiry);
+          
+          // Guardar en localStorage
+          localStorage.setItem('access_token', userData.access_token);
+          if (userData.token_expiry) {
+            localStorage.setItem('token_expiry', userData.token_expiry);
+          }
+          
+          return userData.access_token;
+        }
+      }
+    } catch (error) {
+      console.log('❌ No se pudo obtener token fresco desde /auth/session:', error.message);
+    }
+    
+    // Si no se pudo obtener token fresco, usar el existente
+    if (accessToken) {
+      console.log('🔄 Usando token existente:', accessToken ? `${accessToken.substring(0, 20)}...` : 'null');
       return accessToken;
     }
     
-    // Si no hay token o está expirado, intentar renovarlo
-    if (!accessToken || isTokenExpired()) {
-      console.log('🔄 Token no disponible o expirado, intentando obtener nuevo token...');
-      try {
-        // Primero intentar obtener un nuevo token
-        console.log('🔄 Intentando obtener nuevo token desde /auth/token...');
-        const newToken = await getNewAccessToken();
-        console.log('✅ Nuevo token obtenido exitosamente:', newToken ? `${newToken.substring(0, 20)}...` : 'null');
-        return newToken;
-      } catch (error) {
-        console.log('❌ No se pudo obtener nuevo token, intentando renovar...', error.message);
-        try {
-          console.log('🔄 Intentando renovar token desde /auth/refresh...');
-          const refreshedToken = await refreshAccessToken();
-          console.log('✅ Token renovado exitosamente:', refreshedToken ? `${refreshedToken.substring(0, 20)}...` : 'null');
-          return refreshedToken;
-        } catch (refreshError) {
-          console.log('❌ No se pudo renovar el token:', refreshError.message);
-          console.log('🔄 Usando token existente aunque pueda estar expirado...');
-          // Si no se puede renovar, usar el token existente si lo hay
-          return accessToken || null;
-        }
-      }
-    }
-    
-    console.log('✅ Token válido disponible:', accessToken ? `${accessToken.substring(0, 20)}...` : 'null');
-    return accessToken;
+    console.log('❌ No hay token disponible');
+    return null;
   };
 
   // Función para hacer llamadas autenticadas a la API
