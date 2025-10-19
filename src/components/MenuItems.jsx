@@ -27,10 +27,8 @@ const MenuItems = ({ onItemClick }) => {
     // Home - Todos los usuarios pueden verlo
     menuItems.push({ text: 'Home', icon: <HomeIcon />, path: '/' });
     
-    // Calendario - Solo usuarios con rol 'player' o 'coach'
-    if (user?.roles?.includes('player') || user?.roles?.includes('coach')) {
-      menuItems.push({ text: 'Calendario', icon: <CalendarIcon />, path: '/calendario' });
-    }
+    // Calendario - Temporalmente visible para todos los usuarios
+    menuItems.push({ text: 'Calendario', icon: <CalendarIcon />, path: '/calendario' });
     
     // Contacto - Todos los usuarios pueden verlo
     menuItems.push({ text: 'Contacto', icon: <ContactIcon />, path: '/contacto' });

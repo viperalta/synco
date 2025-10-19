@@ -206,9 +206,9 @@ function App() {
                       </ProtectedRoute>
                     } />
                     <Route path="/calendario" element={
-                      <RoleProtectedRoute allowedRoles={['player', 'coach', 'admin']}>
+                      <ProtectedRoute>
                         <Calendar />
-                      </RoleProtectedRoute>
+                      </ProtectedRoute>
                     } />
                     <Route path="/contacto" element={
                       <ProtectedRoute>
