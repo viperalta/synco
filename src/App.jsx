@@ -24,9 +24,10 @@ import Contact from './pages/Contact';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import Users from './pages/Users';
+import UserProfile from './pages/UserProfile';
 
 // Import components
-import UserProfile from './components/UserProfile';
+import UserProfileComponent from './components/UserProfile';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import RoleProtectedRoute from './components/RoleProtectedRoute';
@@ -119,7 +120,7 @@ function App() {
       
       {/* User Profile */}
       <Box sx={{ px: 2, pb: 2, mt: 'auto' }}>
-        <UserProfile />
+        <UserProfileComponent onItemClick={() => setMobileOpen(false)} />
       </Box>
     </div>
   );
@@ -219,6 +220,11 @@ function App() {
                       <AdminProtectedRoute>
                         <Users />
                       </AdminProtectedRoute>
+                    } />
+                    <Route path="/perfil" element={
+                      <ProtectedRoute>
+                        <UserProfile />
+                      </ProtectedRoute>
                     } />
                   </Routes>
                 </Paper>

@@ -53,7 +53,8 @@ const Users = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [editForm, setEditForm] = useState({
     nickname: '',
-    roles: []
+    roles: [],
+    tipo_eventos: []
   });
   const [updating, setUpdating] = useState(false);
   const [roleFilter, setRoleFilter] = useState([]);
@@ -137,7 +138,8 @@ const Users = () => {
     setEditingUser(user);
     setEditForm({
       nickname: user.nickname || '',
-      roles: user.roles || []
+      roles: user.roles || [],
+      tipo_eventos: user.tipo_eventos || []
     });
     setEditModalOpen(true);
   };
@@ -148,7 +150,8 @@ const Users = () => {
     setEditingUser(null);
     setEditForm({
       nickname: '',
-      roles: []
+      roles: [],
+      tipo_eventos: []
     });
     setUpdating(false);
   };
@@ -214,6 +217,13 @@ const Users = () => {
     { value: 'coach', label: 'Entrenador' }
   ];
 
+  // Opciones de tipos de eventos disponibles
+  const eventTypeOptions = [
+    { value: 'entrenamiento', label: 'Entrenamiento' },
+    { value: 'pasco', label: 'Liga Pasco' },
+    { value: 'oriente', label: 'Liga Oriente' }
+  ];
+
   // Función para filtrar usuarios por roles y texto
   const filteredUsers = users.filter(user => {
     // Filtro por roles
@@ -249,6 +259,26 @@ const Users = () => {
     return roleOption ? roleOption.label : role;
   };
 
+  // Función para traducir tipo de evento
+  const translateEventType = (eventType) => {
+    const eventTypeOption = eventTypeOptions.find(option => option.value === eventType);
+    return eventTypeOption ? eventTypeOption.label : eventType;
+  };
+
+  // Función para obtener color del chip según el tipo de evento
+  const getEventTypeColor = (eventType) => {
+    switch (eventType) {
+      case 'pasco':
+        return 'primary';
+      case 'oriente':
+        return 'secondary';
+      case 'entrenamiento':
+        return 'success';
+      default:
+        return 'default';
+    }
+  };
+
   // Componente de Card para mobile
   const UserCard = ({ user }) => (
     <Card variant="outlined" sx={{ mb: 2 }}>
@@ -270,6 +300,9 @@ const Users = () => {
         </Box>
         
         <Box sx={{ mb: 1 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+            Roles
+          </Typography>
           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
             {user.roles?.map((role) => (
               <Chip
@@ -282,6 +315,26 @@ const Users = () => {
             ))}
           </Box>
         </Box>
+
+        {/* Tipos de Eventos */}
+        {user.tipo_eventos && user.tipo_eventos.length > 0 && (
+          <Box sx={{ mb: 1 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+              Tipos de Eventos
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+              {user.tipo_eventos.map((eventType) => (
+                <Chip
+                  key={eventType}
+                  label={translateEventType(eventType)}
+                  size="small"
+                  color={getEventTypeColor(eventType)}
+                  variant="outlined"
+                />
+              ))}
+            </Box>
+          </Box>
+        )}
       </CardContent>
       
       <CardActions sx={{ justifyContent: 'flex-end', pt: 0 }}>
@@ -432,8 +485,8 @@ const Users = () => {
                   <TableCell>Email</TableCell>
                   <TableCell>Nickname</TableCell>
                   <TableCell>Roles</TableCell>
+                  <TableCell>Tipos de Eventos</TableCell>
                   <TableCell>Estado</TableCell>
-                  <TableCell>Fecha Creación</TableCell>
                   <TableCell>Acciones</TableCell>
                 </TableRow>
               </TableHead>
@@ -476,17 +529,25 @@ const Users = () => {
                       </Box>
                     </TableCell>
                     <TableCell>
+                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                        {user.tipo_eventos?.map((eventType) => (
+                          <Chip
+                            key={eventType}
+                            label={translateEventType(eventType)}
+                            size="small"
+                            color={getEventTypeColor(eventType)}
+                            variant="outlined"
+                          />
+                        ))}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
                       <Chip
                         label={user.is_active ? 'Activo' : 'Inactivo'}
                         color={user.is_active ? 'success' : 'default'}
                         size="small"
                         variant="outlined"
                       />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {formatDate(user.created_at)}
-                      </Typography>
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
@@ -567,6 +628,25 @@ const Users = () => {
                     ))}
                   </Box>
                 </Box>
+
+                {/* Tipos de Eventos */}
+                {selectedUser?.tipo_eventos && selectedUser.tipo_eventos.length > 0 && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Tipos de Eventos
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      {selectedUser.tipo_eventos.map((eventType) => (
+                        <Chip
+                          key={eventType}
+                          label={translateEventType(eventType)}
+                          color={getEventTypeColor(eventType)}
+                          variant="filled"
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                )}
               </CardContent>
             </Card>
             
@@ -674,6 +754,39 @@ const Users = () => {
               </Select>
               <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                 Puedes seleccionar múltiples roles o ninguno
+              </Typography>
+            </FormControl>
+
+            {/* Selector de Tipos de Eventos */}
+            <FormControl fullWidth>
+              <InputLabel id="event-types-select-label">Tipos de Eventos</InputLabel>
+              <Select
+                labelId="event-types-select-label"
+                multiple
+                value={editForm.tipo_eventos}
+                onChange={(e) => handleFormChange('tipo_eventos', e.target.value)}
+                input={<OutlinedInput label="Tipos de Eventos" />}
+                renderValue={(selected) => (
+                  <MuiBox sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selected.map((value) => (
+                      <Chip 
+                        key={value} 
+                        label={translateEventType(value)} 
+                        color={getEventTypeColor(value)}
+                        size="small"
+                      />
+                    ))}
+                  </MuiBox>
+                )}
+              >
+                {eventTypeOptions.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                Selecciona los tipos de eventos en los que participa el usuario
               </Typography>
             </FormControl>
           </Box>
