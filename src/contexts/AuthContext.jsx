@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { apiCall } from '../config/api';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
 // Función para obtener la URL base del backend
 const getBackendUrl = () => {
@@ -31,11 +30,11 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [justLoggedOut, setJustLoggedOut] = useState(false);
   const [accessToken, setAccessToken] = useState(null);
-  const [tokenExpiry, setTokenExpiry] = useState(null);
+  const [refreshToken, setRefreshToken] = useState(null);
 
-  // Variable para evitar múltiples verificaciones de sesión simultáneas
-  let sessionCheckPromise = null;
-  let lastSessionCheck = 0;
+  // Variables para evitar múltiples verificaciones de sesión simultáneas
+  const sessionCheckPromiseRef = useRef(null);
+  const lastSessionCheckRef = useRef(0);
   const SESSION_CHECK_COOLDOWN = 3000; // 3 segundos de cooldown
 
   // Función para verificar sesión existente usando cookies httpOnly
@@ -44,22 +43,44 @@ export const AuthProvider = ({ children }) => {
       console.log('🔍 Verificando sesión existente...');
       
       // Si hay una verificación en progreso, esperar a que termine
-      if (sessionCheckPromise) {
+      if (sessionCheckPromiseRef.current) {
         console.log('⏳ Esperando verificación de sesión en progreso...');
-        return await sessionCheckPromise;
+        return await sessionCheckPromiseRef.current;
       }
       
       // Verificar cooldown para evitar llamadas muy frecuentes
       const now = Date.now();
-      if (now - lastSessionCheck < SESSION_CHECK_COOLDOWN) {
+      if (now - lastSessionCheckRef.current < SESSION_CHECK_COOLDOWN) {
         console.log('⏰ Cooldown activo para verificación de sesión');
         return isAuthenticated; // Retornar estado actual
       }
       
-      lastSessionCheck = now;
+      lastSessionCheckRef.current = now;
       
-      sessionCheckPromise = (async () => {
+      sessionCheckPromiseRef.current = (async () => {
         try {
+          // Si hay refresh_token, validar sesión con él para obtener nuevos tokens
+          if (refreshToken) {
+            const resp = await fetch(`${getBackendUrl()}/auth/check-session`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refresh_token: refreshToken })
+            });
+            if (resp.ok) {
+              const data = await resp.json();
+              setUser(data.user);
+              setIsAuthenticated(true);
+              if (data.access_token) {
+                setAccessToken(data.access_token);
+                localStorage.setItem('access_token', data.access_token);
+              }
+              if (data.refresh_token) {
+                setRefreshToken(data.refresh_token);
+                localStorage.setItem('refresh_token', data.refresh_token);
+              }
+              return true;
+            }
+          }
           const response = await fetch(`${getBackendUrl()}/auth/session`, {
             credentials: 'include', // Importante para enviar cookies
             method: 'GET',
@@ -81,13 +102,17 @@ export const AuthProvider = ({ children }) => {
             if (userData.access_token) {
               console.log('🔑 Access token obtenido:', userData.access_token);
               setAccessToken(userData.access_token);
-              setTokenExpiry(userData.token_expiry);
               
               // Guardar token en localStorage para persistencia
               localStorage.setItem('access_token', userData.access_token);
-              localStorage.setItem('token_expiry', userData.token_expiry);
             } else {
               console.log('⚠️ No se encontró access_token en la respuesta');
+            }
+
+            // Guardar refresh_token si está disponible
+            if (userData.refresh_token) {
+              setRefreshToken(userData.refresh_token);
+              localStorage.setItem('refresh_token', userData.refresh_token);
             }
             
             // Guardar email para silent login futuro
@@ -114,32 +139,30 @@ export const AuthProvider = ({ children }) => {
           return false;
         } finally {
           // Limpiar la promesa después de completarse
-          sessionCheckPromise = null;
+          sessionCheckPromiseRef.current = null;
         }
       })();
       
-      return await sessionCheckPromise;
+      return await sessionCheckPromiseRef.current;
     } catch (error) {
       console.error('Error verificando sesión:', error);
       return false;
     }
   };
 
-  // Función para intentar silent login usando iframe (sin popup)
+  // Función para intentar silent login usando GET con query parameter
   const attemptSilentLogin = async (email) => {
     try {
       console.log('🔇 Intentando silent login para:', email);
       
-      // En lugar de usar popup, hacer una llamada directa al backend
-      // El backend manejará la autenticación silenciosa internamente
-      const response = await fetch(`${getBackendUrl()}/auth/google/silent`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email })
-      });
+      // Usar GET con email como query parameter según especificación del backend
+      const response = await fetch(
+        `${getBackendUrl()}/auth/google/silent?email=${encodeURIComponent(email)}`,
+        { 
+          method: 'GET', 
+          credentials: 'include' 
+        }
+      );
       
       if (response.ok) {
         console.log('✅ Silent login exitoso');
@@ -346,24 +369,30 @@ export const AuthProvider = ({ children }) => {
   // Función para inicializar tokens desde localStorage
   const initializeTokens = () => {
     const savedToken = localStorage.getItem('access_token');
-    const savedExpiry = localStorage.getItem('token_expiry');
+    const savedRefresh = localStorage.getItem('refresh_token');
     
     console.log('🔍 Inicializando tokens desde localStorage...');
     console.log('📦 Token guardado:', !!savedToken);
-    console.log('📦 Expiry guardado:', savedExpiry);
+    console.log('📦 Refresh token guardado:', !!savedRefresh);
     
-    if (savedToken && savedExpiry) {
-      // Verificar si el token no está expirado
-      if (new Date() < new Date(savedExpiry)) {
-        console.log('🔑 Token válido encontrado en localStorage');
-        setAccessToken(savedToken);
-        setTokenExpiry(savedExpiry);
-        return true;
-      } else {
+    if (savedRefresh) {
+      setRefreshToken(savedRefresh);
+    }
+
+    if (savedToken) {
+      // Setear token primero
+      setAccessToken(savedToken);
+      
+      // Verificar expiración después de setear
+      if (isAccessTokenExpired()) {
         console.log('⏰ Token expirado en localStorage, limpiando...');
+        setAccessToken(null);
         localStorage.removeItem('access_token');
-        localStorage.removeItem('token_expiry');
+        return false;
       }
+      
+      console.log('🔑 Token válido encontrado en localStorage');
+      return true;
     } else {
       console.log('❌ No hay tokens guardados en localStorage');
     }
@@ -464,10 +493,10 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
       setAccessToken(null);
-      setTokenExpiry(null);
+      setRefreshToken(null);
       localStorage.removeItem('user_email');
       localStorage.removeItem('access_token');
-      localStorage.removeItem('token_expiry');
+      localStorage.removeItem('refresh_token');
       
       // Marcar que el usuario acaba de hacer logout
       setJustLoggedOut(true);
@@ -516,10 +545,10 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
       setAccessToken(null);
-      setTokenExpiry(null);
+      setRefreshToken(null);
       localStorage.removeItem('user_email');
       localStorage.removeItem('access_token');
-      localStorage.removeItem('token_expiry');
+      localStorage.removeItem('refresh_token');
       
       // Marcar que el usuario acaba de hacer logout
       setJustLoggedOut(true);
@@ -535,67 +564,35 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Función para verificar si el token está expirado
-  const isTokenExpired = () => {
-    if (!tokenExpiry) {
-      console.log('⚠️ No hay fecha de expiración, considerando token como válido');
-      return false; // Si no hay fecha de expiración, considerar como válido
+  // Verificación de expiración basada en JWT (exp)
+  const isAccessTokenExpired = () => {
+    if (!accessToken) return true;
+    try {
+      const payload = JSON.parse(atob(accessToken.split('.')[1]));
+      return Date.now() >= payload.exp * 1000;
+    } catch {
+      return true;
     }
-    const isExpired = new Date() >= new Date(tokenExpiry);
-    console.log('🕐 Verificando expiración:', {
-      expiry: tokenExpiry,
-      current: new Date().toISOString(),
-      isExpired
-    });
-    return isExpired;
   };
 
-  // Función para obtener un nuevo access token
-  const getNewAccessToken = async () => {
-    try {
-      console.log('🔄 Obteniendo nuevo access token...');
-      
-      const response = await fetch(`${getBackendUrl()}/auth/token`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Token obtenido exitosamente');
-        
-        setAccessToken(data.access_token);
-        setTokenExpiry(data.token_expiry);
-        
-        // Guardar token en localStorage
-        localStorage.setItem('access_token', data.access_token);
-        localStorage.setItem('token_expiry', data.token_expiry);
-        
-        return data.access_token;
-      } else {
-        console.log('❌ Error obteniendo token:', response.status);
-        throw new Error('No se pudo obtener el token');
-      }
-    } catch (error) {
-      console.error('Error obteniendo token:', error);
-      throw error;
-    }
-  };
 
   // Función para renovar el access token
   const refreshAccessToken = async () => {
     try {
       console.log('🔄 Renovando access token...');
-      
+      const currentRefresh = refreshToken || localStorage.getItem('refresh_token');
+      if (!currentRefresh) {
+        console.log('❌ No hay refresh_token disponible, cerrando sesión');
+        await handleLogout();
+        throw new Error('No refresh token');
+      }
+
       const response = await fetch(`${getBackendUrl()}/auth/refresh`, {
         method: 'POST',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({ refresh_token: currentRefresh })
       });
       
       if (response.ok) {
@@ -603,104 +600,91 @@ export const AuthProvider = ({ children }) => {
         console.log('✅ Token renovado exitosamente');
         
         setAccessToken(data.access_token);
-        setTokenExpiry(data.token_expiry);
         
         // Guardar token renovado en localStorage
         localStorage.setItem('access_token', data.access_token);
-        localStorage.setItem('token_expiry', data.token_expiry);
+        if (data.refresh_token) {
+          setRefreshToken(data.refresh_token);
+          localStorage.setItem('refresh_token', data.refresh_token);
+        }
         
         return data.access_token;
       } else {
         console.log('❌ Error renovando token:', response.status);
+        await handleLogout();
         throw new Error('No se pudo renovar el token');
       }
     } catch (error) {
       console.error('Error renovando token:', error);
+      await handleLogout();
       throw error;
     }
   };
 
-  // Variable para evitar múltiples llamadas simultáneas
-  let tokenRefreshPromise = null;
-  let lastTokenRefresh = 0;
+  // Variables para evitar múltiples llamadas simultáneas
+  const tokenRefreshPromiseRef = useRef(null);
+  const lastTokenRefreshRef = useRef(0);
   const TOKEN_REFRESH_COOLDOWN = 5000; // 5 segundos de cooldown
 
   // Función para obtener el token de autenticación
   const getAuthToken = async () => {
-    console.log('🔑 getAuthToken llamado - accessToken:', !!accessToken, 'expired:', isTokenExpired());
-    console.log('🔍 Estado actual del token:', { 
-      hasToken: !!accessToken, 
-      tokenValue: accessToken ? `${accessToken.substring(0, 20)}...` : 'null',
-      expiry: tokenExpiry,
-      currentTime: new Date().toISOString(),
-      isExpired: isTokenExpired()
-    });
+    console.log('🔑 getAuthToken llamado - accessToken:', !!accessToken, 'expired:', isAccessTokenExpired());
     
-    // Si tenemos un token válido y no está expirado, usarlo directamente
-    if (accessToken && !isTokenExpired()) {
-      console.log('✅ Usando token existente válido:', accessToken ? `${accessToken.substring(0, 20)}...` : 'null');
+    // 1. Token válido existente
+    if (accessToken && !isAccessTokenExpired()) {
+      console.log('✅ Usando token existente válido');
       return accessToken;
     }
     
-    // Si hay una llamada en progreso, esperar a que termine
-    if (tokenRefreshPromise) {
+    // 2. Evitar llamadas simultáneas
+    if (tokenRefreshPromiseRef.current) {
       console.log('⏳ Esperando llamada de token en progreso...');
-      return await tokenRefreshPromise;
+      return await tokenRefreshPromiseRef.current;
     }
     
-    // Verificar cooldown para evitar llamadas muy frecuentes
+    // 3. Verificar cooldown
     const now = Date.now();
-    if (now - lastTokenRefresh < TOKEN_REFRESH_COOLDOWN) {
+    if (now - lastTokenRefreshRef.current < TOKEN_REFRESH_COOLDOWN) {
       console.log('⏰ Cooldown activo, usando token existente si está disponible');
       return accessToken || null;
     }
     
-    // Intentar obtener un token fresco desde /auth/session
-    console.log('🔄 Obteniendo token fresco desde /auth/session...');
-    lastTokenRefresh = now;
+    lastTokenRefreshRef.current = now;
     
-    tokenRefreshPromise = (async () => {
+    tokenRefreshPromiseRef.current = (async () => {
       try {
+        // Prioridad 1: Renovar con refresh_token
+        if (refreshToken || localStorage.getItem('refresh_token')) {
+          console.log('🔄 Intentando renovar con refresh_token...');
+          return await refreshAccessToken();
+        }
+        
+        // Prioridad 2: Obtener token fresco desde /auth/session
+        console.log('🔄 Obteniendo token fresco desde /auth/session...');
         const response = await fetch(`${getBackendUrl()}/auth/session`, {
           credentials: 'include',
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          headers: { 'Content-Type': 'application/json' }
         });
         
         if (response.ok) {
-          const userData = await response.json();
-          if (userData.access_token) {
-            console.log('✅ Token fresco obtenido desde /auth/session:', userData.access_token ? `${userData.access_token.substring(0, 20)}...` : 'null');
-            
-            // Actualizar el estado con el token fresco
-            setAccessToken(userData.access_token);
-            setTokenExpiry(userData.token_expiry);
-            
-            // Guardar en localStorage
-            localStorage.setItem('access_token', userData.access_token);
-            if (userData.token_expiry) {
-              localStorage.setItem('token_expiry', userData.token_expiry);
-            }
-            
-            return userData.access_token;
+          const data = await response.json();
+          if (data.access_token) {
+            console.log('✅ Token fresco obtenido desde /auth/session');
+            setAccessToken(data.access_token);
+            localStorage.setItem('access_token', data.access_token);
+            return data.access_token;
           }
         }
         
-        // Si no se pudo obtener token fresco, usar el existente
-        console.log('⚠️ No se pudo obtener token fresco, usando existente');
-        return accessToken || null;
-      } catch (error) {
-        console.log('❌ No se pudo obtener token fresco desde /auth/session:', error.message);
-        return accessToken || null;
+        console.log('⚠️ No se pudo obtener token fresco');
+        return null;
       } finally {
-        // Limpiar la promesa después de completarse
-        tokenRefreshPromise = null;
+        tokenRefreshPromiseRef.current = null;
       }
     })();
     
-    return await tokenRefreshPromise;
+    return await tokenRefreshPromiseRef.current;
   };
 
   // Función para hacer llamadas autenticadas a la API
@@ -739,8 +723,27 @@ export const AuthProvider = ({ children }) => {
       
       if (!response.ok) {
         if (response.status === 401) {
-          console.log('🔒 Error 401 - Token inválido o expirado');
-          throw new Error('Token de autenticación inválido o expirado');
+          console.log('🔒 401 - Intentando refrescar y reintentar');
+          try {
+            await refreshAccessToken();
+            const retryHeaders = {
+              'Content-Type': 'application/json',
+              ...options.headers
+            };
+            const retryToken = localStorage.getItem('access_token');
+            if (retryToken) retryHeaders['Authorization'] = `Bearer ${retryToken}`;
+            const retryResponse = await fetch(`${getBackendUrl()}${endpoint}`, {
+              ...options,
+              credentials: 'include',
+              headers: retryHeaders
+            });
+            if (!retryResponse.ok) {
+              throw new Error(`Error del servidor: ${retryResponse.status}`);
+            }
+            return retryResponse;
+          } catch (e) {
+            throw new Error('Token de autenticación inválido o expirado');
+          }
         } else if (response.status === 403) {
           console.log('🚫 Acceso denegado');
           throw new Error('No tienes permisos para realizar esta acción');
@@ -767,24 +770,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Función para verificar si un usuario existe (mantener compatibilidad)
-  const checkUserExists = async (email) => {
-    try {
-      const response = await authenticatedApiCall('/auth/check-user', {
-        method: 'POST',
-        body: JSON.stringify({ email })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        return data.exists;
-      }
-      return false;
-    } catch (error) {
-      console.error('Error verificando usuario:', error);
-      return false;
-    }
-  };
 
   const value = {
     user,
@@ -792,18 +777,15 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     justLoggedOut,
     accessToken,
-    tokenExpiry,
+    refreshToken,
     setUser,
     setIsAuthenticated,
     handleGoogleLogin,
     handleChangeAccount,
     handleLogout,
     getAuthToken,
-    getNewAccessToken,
     refreshAccessToken,
-    isTokenExpired,
     authenticatedApiCall,
-    checkUserExists,
     // Funciones de debug y utilidades
     debugCookieState,
     debugCookieDetails,
