@@ -34,22 +34,38 @@ const ShareTarget = () => {
   const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
-    // Verificar si hay datos compartidos disponibles
+    // Verificar si hay datos compartidos disponibles en la URL
     if (window.location.search) {
       const urlParams = new URLSearchParams(window.location.search);
       const title = urlParams.get('title');
       const text = urlParams.get('text');
       const url = urlParams.get('url');
+      const fileName = urlParams.get('fileName');
+      const fileType = urlParams.get('fileType');
+      const fileSize = urlParams.get('fileSize');
       const error = urlParams.get('error');
+      
+      console.log('Parámetros URL:', { title, text, url, fileName, fileType, fileSize, error });
       
       if (error) {
         setError('Error al procesar el archivo compartido');
-      } else if (title || text || url) {
-        setFileInfo({
+      } else if (title || text || url || fileName) {
+        const fileData = {
           title: title || 'Archivo compartido',
           text: text || '',
           url: url || ''
-        });
+        };
+        
+        // Si hay datos de archivo en la URL, agregarlos
+        if (fileName) {
+          fileData.name = fileName;
+          fileData.type = fileType;
+          fileData.size = parseInt(fileSize) || 0;
+          fileData.lastModified = Date.now();
+        }
+        
+        setFileInfo(fileData);
+        console.log('Datos de archivo establecidos desde URL:', fileData);
       }
     }
 
@@ -68,6 +84,16 @@ const ShareTarget = () => {
       }
     };
   }, []);
+
+  // Efecto para regenerar preview cuando cambien los datos del archivo
+  useEffect(() => {
+    if (fileInfo && fileInfo.type?.startsWith('image/')) {
+      // Si es una imagen pero no hay preview URL, mostrar mensaje de error
+      if (!imagePreview) {
+        setImageError(true);
+      }
+    }
+  }, [fileInfo, imagePreview]);
 
   const handleServiceWorkerMessage = (event) => {
     const { type, data } = event.data;
@@ -97,10 +123,13 @@ const ShareTarget = () => {
   };
 
   const generateImagePreview = () => {
-    // Solo generar preview mock si no hay datos reales
+    // Solo generar preview mock si no hay datos reales de imagen
     if (!fileInfo || !fileInfo.type?.startsWith('image/')) {
-      const mockImageUrl = 'https://via.placeholder.com/300x200/1976d2/ffffff?text=Imagen+Compartida';
-      setImagePreview(mockImageUrl);
+      // Solo mostrar mock si estamos en modo demo
+      if (window.location.search === '') {
+        const mockImageUrl = 'https://via.placeholder.com/300x200/1976d2/ffffff?text=Imagen+Compartida';
+        setImagePreview(mockImageUrl);
+      }
     }
   };
 
@@ -173,68 +202,116 @@ const ShareTarget = () => {
     lastModified: Date.now()
   };
 
-  const displayFileInfo = fileInfo || mockFileInfo;
+  // Usar datos reales si están disponibles, sino usar mock solo para demo
+  const displayFileInfo = fileInfo || (window.location.search === '' ? mockFileInfo : null);
 
   return (
     <Box sx={{ 
       minHeight: '100vh', 
       bgcolor: 'background.default',
-      p: 2,
+      p: { xs: 1, sm: 2 },
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center'
     }}>
       <Paper elevation={3} sx={{ 
-        p: 3, 
-        maxWidth: 500, 
+        p: { xs: 2, sm: 3 }, 
+        maxWidth: { xs: '100%', sm: 500 }, 
         width: '100%',
-        textAlign: 'center'
+        textAlign: 'center',
+        mx: { xs: 0, sm: 'auto' }
       }}>
         {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5" component="h1" color="primary" sx={{ fontWeight: 'bold' }}>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          mb: { xs: 2, sm: 3 }
+        }}>
+          <Typography 
+            variant="h5" 
+            component="h1" 
+            color="primary" 
+            sx={{ 
+              fontWeight: 'bold',
+              fontSize: { xs: '1.25rem', sm: '1.5rem' }
+            }}
+          >
             Subir Archivo
           </Typography>
           <Tooltip title="Cerrar">
-            <IconButton onClick={handleClose} color="inherit">
+            <IconButton onClick={handleClose} color="inherit" size="small">
               <Close />
             </IconButton>
           </Tooltip>
         </Box>
 
-        <Divider sx={{ mb: 3 }} />
+        <Divider sx={{ mb: { xs: 2, sm: 3 } }} />
 
         {/* File Information Card */}
-        <Card sx={{ mb: 3, textAlign: 'left' }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Box sx={{ mr: 2 }}>
-                {getFileIcon(displayFileInfo.type)}
-              </Box>
-              <Box sx={{ flexGrow: 1 }}>
-                <Typography variant="h6" component="h2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                  {displayFileInfo.name || displayFileInfo.title || 'Archivo sin nombre'}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  <Chip 
-                    label={getFileTypeLabel(displayFileInfo.type)} 
-                    color="primary" 
-                    size="small" 
-                  />
-                  <Chip 
-                    label={formatFileSize(displayFileInfo.size)} 
-                    color="secondary" 
-                    size="small" 
-                  />
+        {displayFileInfo ? (
+          <Card sx={{ mb: { xs: 2, sm: 3 }, textAlign: 'left' }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                mb: 2,
+                flexDirection: { xs: 'column', sm: 'row' },
+                textAlign: { xs: 'center', sm: 'left' }
+              }}>
+                <Box sx={{ 
+                  mr: { xs: 0, sm: 2 }, 
+                  mb: { xs: 1, sm: 0 },
+                  display: 'flex',
+                  justifyContent: 'center'
+                }}>
+                  {getFileIcon(displayFileInfo.type)}
+                </Box>
+                <Box sx={{ flexGrow: 1, width: '100%' }}>
+                  <Typography 
+                    variant="h6" 
+                    component="h2" 
+                    sx={{ 
+                      fontWeight: 'bold', 
+                      mb: 1,
+                      fontSize: { xs: '1rem', sm: '1.25rem' },
+                      wordBreak: 'break-word'
+                    }}
+                  >
+                    {displayFileInfo.name || displayFileInfo.title || 'Archivo sin nombre'}
+                  </Typography>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    gap: 1, 
+                    flexWrap: 'wrap',
+                    justifyContent: { xs: 'center', sm: 'flex-start' }
+                  }}>
+                    <Chip 
+                      label={getFileTypeLabel(displayFileInfo.type)} 
+                      color="primary" 
+                      size="small" 
+                    />
+                    <Chip 
+                      label={formatFileSize(displayFileInfo.size)} 
+                      color="secondary" 
+                      size="small" 
+                    />
+                  </Box>
                 </Box>
               </Box>
-            </Box>
             
             {/* Image Preview */}
             {displayFileInfo.type?.startsWith('image/') && imagePreview && !imageError && (
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                <Typography 
+                  variant="subtitle2" 
+                  sx={{ 
+                    mb: 1, 
+                    fontWeight: 'bold',
+                    textAlign: { xs: 'center', sm: 'left' }
+                  }}
+                >
                   Vista previa:
                 </Typography>
                 <CardMedia
@@ -242,7 +319,8 @@ const ShareTarget = () => {
                   image={imagePreview}
                   alt="Vista previa del archivo"
                   sx={{
-                    maxHeight: 300,
+                    maxHeight: { xs: 200, sm: 300 },
+                    width: '100%',
                     objectFit: 'contain',
                     borderRadius: 1,
                     border: '1px solid',
@@ -282,6 +360,18 @@ const ShareTarget = () => {
             )}
           </CardContent>
         </Card>
+        ) : (
+          <Card sx={{ mb: 3, textAlign: 'center' }}>
+            <CardContent>
+              <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+                No se detectó ningún archivo compartido
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Intenta compartir un archivo desde otra aplicación
+              </Typography>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Upload Section */}
         {!uploadSuccess ? (
@@ -293,7 +383,11 @@ const ShareTarget = () => {
               startIcon={<Upload />}
               onClick={handleFileUpload}
               disabled={isUploading}
-              sx={{ mb: 2, minWidth: 200 }}
+              sx={{ 
+                mb: 2, 
+                minWidth: { xs: '100%', sm: 200 },
+                width: { xs: '100%', sm: 'auto' }
+              }}
             >
               {isUploading ? (
                 <>
@@ -324,7 +418,10 @@ const ShareTarget = () => {
               variant="outlined"
               color="primary"
               onClick={handleClose}
-              sx={{ minWidth: 200 }}
+              sx={{ 
+                minWidth: { xs: '100%', sm: 200 },
+                width: { xs: '100%', sm: 'auto' }
+              }}
             >
               Cerrar
             </Button>
@@ -332,7 +429,16 @@ const ShareTarget = () => {
         )}
 
         {/* Instructions */}
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 3, fontStyle: 'italic' }}>
+        <Typography 
+          variant="body2" 
+          color="text.secondary" 
+          sx={{ 
+            mt: { xs: 2, sm: 3 }, 
+            fontStyle: 'italic',
+            textAlign: { xs: 'center', sm: 'left' },
+            px: { xs: 1, sm: 0 }
+          }}
+        >
           Este archivo fue compartido desde otra aplicación hacia SYNCO.
           Puedes subirlo como comprobante para futuras funcionalidades.
         </Typography>

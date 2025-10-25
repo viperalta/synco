@@ -33,6 +33,8 @@ async function handleShareTarget(request) {
     const text = formData.get('text') || '';
     const url = formData.get('url') || '';
 
+    console.log('Share target recibido:', { title, text, url, hasFile: !!file });
+
     // Preparar datos para enviar al cliente
     const shareData = {
       title,
@@ -46,28 +48,37 @@ async function handleShareTarget(request) {
       } : null
     };
 
-    // Enviar datos a todos los clientes
-    const clients = await self.clients.matchAll();
-    clients.forEach(client => {
-      client.postMessage({
-        type: 'SHARE_DATA_RECEIVED',
-        data: shareData
-      });
-    });
-
     // Si hay archivo, procesarlo
     if (file) {
       const fileData = await processFile(file);
-      clients.forEach(client => {
-        client.postMessage({
-          type: 'FILE_DATA_RECEIVED',
-          data: fileData
-        });
+      shareData.previewUrl = fileData.previewUrl;
+    }
+
+    // Guardar datos en sessionStorage usando postMessage
+    const clients = await self.clients.matchAll();
+    if (clients.length > 0) {
+      // Enviar datos al cliente principal
+      clients[0].postMessage({
+        type: 'SHARE_DATA_RECEIVED',
+        data: shareData
       });
     }
 
-    // Redirigir a la página share-target
-    return Response.redirect('/share-target', 302);
+    // Redirigir a la página share-target con parámetros
+    const params = new URLSearchParams();
+    if (title) params.set('title', title);
+    if (text) params.set('text', text);
+    if (url) params.set('url', url);
+    if (file) {
+      params.set('fileName', file.name);
+      params.set('fileType', file.type);
+      params.set('fileSize', file.size);
+    }
+    
+    const redirectUrl = `/share-target?${params.toString()}`;
+    console.log('Redirigiendo a:', redirectUrl);
+    
+    return Response.redirect(redirectUrl, 302);
   } catch (error) {
     console.error('Error procesando share target:', error);
     return Response.redirect('/share-target?error=1', 302);
