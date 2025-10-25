@@ -12,6 +12,7 @@ import {
   CalendarToday as CalendarIcon,
   ContactPhone as ContactIcon,
   People as PeopleIcon,
+  Event as EventIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -38,6 +39,11 @@ const MenuItems = ({ onItemClick }) => {
     // Usuarios - Solo administradores
     if (user?.roles?.includes('admin')) {
       menuItems.push({ text: 'Usuarios', icon: <PeopleIcon />, path: '/usuarios' });
+    }
+    
+    // Crear Evento - Solo administradores
+    if (user?.roles?.includes('admin')) {
+      menuItems.push({ text: 'Crear Evento', icon: <EventIcon />, path: '/crear-evento' });
     }
 
     console.log('📋 MenuItems generados:', menuItems.map(item => item.text));

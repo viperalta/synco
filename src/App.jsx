@@ -25,6 +25,7 @@ import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import Users from './pages/Users';
 import UserProfile from './pages/UserProfile';
+import CreateEvent from './pages/CreateEvent';
 
 // Import components
 import UserProfileComponent from './components/UserProfile';
@@ -225,6 +226,11 @@ function App() {
                       <ProtectedRoute>
                         <UserProfile />
                       </ProtectedRoute>
+                    } />
+                    <Route path="/crear-evento" element={
+                      <RoleProtectedRoute allowedRoles={['admin']}>
+                        <CreateEvent />
+                      </RoleProtectedRoute>
                     } />
                   </Routes>
                 </Paper>
