@@ -66,6 +66,17 @@ function App() {
     initializeApiUrl().catch(error => {
       console.error('Error inicializando API:', error);
     });
+
+    // Registrar service worker para share target
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(registration => {
+          console.log('Service Worker registrado:', registration);
+        })
+        .catch(error => {
+          console.log('Error registrando Service Worker:', error);
+        });
+    }
   }, []);
 
   const handleDrawerToggle = () => {

@@ -40,8 +40,11 @@ const ShareTarget = () => {
       const title = urlParams.get('title');
       const text = urlParams.get('text');
       const url = urlParams.get('url');
+      const error = urlParams.get('error');
       
-      if (title || text || url) {
+      if (error) {
+        setError('Error al procesar el archivo compartido');
+      } else if (title || text || url) {
         setFileInfo({
           title: title || 'Archivo compartido',
           text: text || '',
@@ -50,21 +53,55 @@ const ShareTarget = () => {
       }
     }
 
-    // Manejar datos POST si están disponibles
-    if (window.navigator && window.navigator.share) {
-      // En un contexto real, aquí obtendrías los datos del share
-      console.log('Share target activado');
+    // Escuchar mensajes del service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
     }
 
     // Generar preview de imagen si es una imagen
     generateImagePreview();
+
+    // Cleanup
+    return () => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
+      }
+    };
   }, []);
 
+  const handleServiceWorkerMessage = (event) => {
+    const { type, data } = event.data;
+    
+    if (type === 'SHARE_DATA_RECEIVED') {
+      console.log('Datos compartidos recibidos:', data);
+      setFileInfo(data);
+      
+      // Si hay un archivo, procesarlo
+      if (data.file) {
+        handleRealFile(data.file);
+      }
+    }
+    
+    if (type === 'FILE_DATA_RECEIVED') {
+      console.log('Datos de archivo recibidos:', data);
+      setFileInfo(prev => ({
+        ...prev,
+        ...data
+      }));
+      
+      // Si hay preview URL para imagen
+      if (data.previewUrl) {
+        setImagePreview(data.previewUrl);
+      }
+    }
+  };
+
   const generateImagePreview = () => {
-    // En un contexto real, aquí obtendrías el archivo real del share
-    // Por ahora simulamos con una imagen de ejemplo
-    const mockImageUrl = 'https://via.placeholder.com/300x200/1976d2/ffffff?text=Imagen+Compartida';
-    setImagePreview(mockImageUrl);
+    // Solo generar preview mock si no hay datos reales
+    if (!fileInfo || !fileInfo.type?.startsWith('image/')) {
+      const mockImageUrl = 'https://via.placeholder.com/300x200/1976d2/ffffff?text=Imagen+Compartida';
+      setImagePreview(mockImageUrl);
+    }
   };
 
   // Función para manejar archivos reales cuando estén disponibles
@@ -128,7 +165,7 @@ const ShareTarget = () => {
     window.close();
   };
 
-  // Simular datos de archivo para demostración
+  // Datos de archivo para demostración (solo si no hay datos reales)
   const mockFileInfo = {
     name: 'comprobante_pago.jpg',
     type: 'image/jpeg',
