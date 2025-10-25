@@ -20,7 +20,12 @@ self.addEventListener('fetch', (event) => {
       handleShareTarget(event.request)
     );
   } else {
-    event.respondWith(fetch(event.request));
+    // Solo interceptar requests importantes para share target
+    // Dejar que el navegador maneje el resto normalmente
+    if (event.request.url.includes('/share-target')) {
+      event.respondWith(fetch(event.request));
+    }
+    // Para otros requests, no hacer nada (no interceptar)
   }
 });
 
