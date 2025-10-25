@@ -26,6 +26,7 @@ import AuthCallback from './pages/AuthCallback';
 import Users from './pages/Users';
 import UserProfile from './pages/UserProfile';
 import CreateEvent from './pages/CreateEvent';
+import ShareTarget from './pages/ShareTarget';
 
 // Import components
 import UserProfileComponent from './components/UserProfile';
@@ -232,6 +233,7 @@ function App() {
                         <CreateEvent />
                       </RoleProtectedRoute>
                     } />
+                    <Route path="/share-target" element={<ShareTarget />} />
                   </Routes>
                 </Paper>
               </Container>
