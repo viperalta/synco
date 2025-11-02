@@ -27,6 +27,10 @@ import Users from './pages/Users';
 import UserProfile from './pages/UserProfile';
 import CreateEvent from './pages/CreateEvent';
 import ShareTarget from './pages/ShareTarget';
+import RegistrarPago from './pages/RegistrarPago';
+import Pagos from './pages/Pagos';
+import MisPagos from './pages/MisPagos';
+import Deuda from './pages/Deuda';
 
 // Import components
 import UserProfileComponent from './components/UserProfile';
@@ -243,6 +247,26 @@ function App() {
                       <RoleProtectedRoute allowedRoles={['admin']}>
                         <CreateEvent />
                       </RoleProtectedRoute>
+                    } />
+                    <Route path="/registrar-pago" element={
+                      <RoleProtectedRoute allowedRoles={['admin', 'player']}>
+                        <RegistrarPago />
+                      </RoleProtectedRoute>
+                    } />
+                    <Route path="/pagos" element={
+                      <AdminProtectedRoute>
+                        <Pagos />
+                      </AdminProtectedRoute>
+                    } />
+                    <Route path="/mis-pagos" element={
+                      <RoleProtectedRoute allowedRoles={['player']}>
+                        <MisPagos />
+                      </RoleProtectedRoute>
+                    } />
+                    <Route path="/deuda" element={
+                      <AdminProtectedRoute>
+                        <Deuda />
+                      </AdminProtectedRoute>
                     } />
                     <Route path="/share-target" element={<ShareTarget />} />
                   </Routes>

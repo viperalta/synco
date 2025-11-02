@@ -13,6 +13,10 @@ import {
   ContactPhone as ContactIcon,
   People as PeopleIcon,
   Event as EventIcon,
+  Payment as PaymentIcon,
+  Receipt as ReceiptIcon,
+  AccountBalanceWallet as WalletIcon,
+  AccountBalance as AccountBalanceIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -44,6 +48,26 @@ const MenuItems = ({ onItemClick }) => {
     // Crear Evento - Solo administradores
     if (user?.roles?.includes('admin')) {
       menuItems.push({ text: 'Crear Evento', icon: <EventIcon />, path: '/crear-evento' });
+    }
+
+    // Registrar Pago - Jugadores y administradores
+    if (user?.roles?.includes('admin') || user?.roles?.includes('player')) {
+      menuItems.push({ text: 'Registrar Pago', icon: <PaymentIcon />, path: '/registrar-pago' });
+    }
+
+    // Mis Pagos - Solo jugadores
+    if (user?.roles?.includes('player')) {
+      menuItems.push({ text: 'Mis Pagos', icon: <WalletIcon />, path: '/mis-pagos' });
+    }
+
+    // Pagos - Solo administradores
+    if (user?.roles?.includes('admin')) {
+      menuItems.push({ text: 'Pagos', icon: <ReceiptIcon />, path: '/pagos' });
+    }
+
+    // Deuda - Solo administradores
+    if (user?.roles?.includes('admin')) {
+      menuItems.push({ text: 'Deuda', icon: <AccountBalanceIcon />, path: '/deuda' });
     }
 
     console.log('📋 MenuItems generados:', menuItems.map(item => item.text));

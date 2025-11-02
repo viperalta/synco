@@ -1,0 +1,1282 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  Button,
+  Alert,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  Tooltip,
+  Pagination,
+  Card,
+  CardContent,
+  Grid,
+  useMediaQuery,
+  useTheme,
+  Divider,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from '@mui/material';
+import {
+  Visibility as VisibilityIcon,
+  Download as DownloadIcon,
+  RemoveRedEye as EyeIcon,
+  Refresh as RefreshIcon,
+  Delete as DeleteIcon,
+  Person as PersonIcon,
+  AttachMoney as AttachMoneyIcon,
+  CalendarMonth as CalendarMonthIcon,
+  Event as EventIcon,
+  Description as DescriptionIcon,
+  CheckCircle as CheckCircleIcon,
+  Receipt as ReceiptIcon,
+} from '@mui/icons-material';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
+const MisPagos = () => {
+  const { authenticatedApiCall: apiCall, getAuthToken } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const navigate = useNavigate();
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalPayments, setTotalPayments] = useState(0);
+  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
+  const [receiptUrl, setReceiptUrl] = useState('');
+  const [receiptLoading, setReceiptLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState(null);
+  const [period, setPeriod] = useState('');
+  const [totalPaid, setTotalPaid] = useState(0);
+  const [totalVerified, setTotalVerified] = useState(0);
+  const [debt, setDebt] = useState(0);
+  const [loadingDebt, setLoadingDebt] = useState(false);
+  const [debtNotRegistered, setDebtNotRegistered] = useState(false);
+
+  const itemsPerPage = 10;
+  
+  // Función para obtener el período actual
+  const getCurrentPeriod = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}${month}`;
+  };
+
+  // Generar períodos para el selector
+  const generatePeriods = () => {
+    const periods = [];
+    const currentDate = new Date();
+    
+    for (let i = -6; i < 6; i++) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const period = `${year}${month}`;
+      
+      const label = date.toLocaleDateString('es-ES', { 
+        year: 'numeric', 
+        month: 'long' 
+      }).replace(/^\w/, (c) => c.toUpperCase()).replace(' de ', ' ');
+      
+      periods.push({ value: period, label });
+    }
+    
+    return periods;
+  };
+
+  const loadPayments = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const skip = (page - 1) * itemsPerPage;
+      let endpoint = `/payments?skip=${skip}&limit=${itemsPerPage}`;
+      
+      // Agregar filtro por período si está seleccionado y no es "all"
+      if (period && period !== 'all') {
+        endpoint += `&period=${period}`;
+      }
+
+      console.log('Cargando mis pagos:', endpoint);
+      const response = await apiCall(endpoint);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Error cargando pagos');
+      }
+
+      const data = await response.json();
+      console.log('Mis pagos cargados:', data);
+      
+      setPayments(data.payments || []);
+      setTotalPayments(data.total || 0);
+      setTotalPages(Math.ceil((data.total || 0) / itemsPerPage));
+      
+      // Calcular totales (solo si hay un período específico seleccionado)
+      if (period && period !== 'all') {
+        const allPayments = data.payments || [];
+        // Total abonado: suma de pagos pendientes y verificados (excluye rechazados)
+        const total = allPayments
+          .filter(p => p.status === 'pending' || p.status === 'verified')
+          .reduce((sum, p) => sum + p.amount, 0);
+        setTotalPaid(total);
+        
+        // Total verificados: solo pagos verificados
+        const verified = allPayments
+          .filter(p => p.status === 'verified')
+          .reduce((sum, p) => sum + p.amount, 0);
+        setTotalVerified(verified);
+      } else {
+        setTotalPaid(0);
+        setTotalVerified(0);
+      }
+
+    } catch (error) {
+      console.error('Error cargando pagos:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadDebt = async () => {
+    if (!period) {
+      setDebt(0);
+      setDebtNotRegistered(false);
+      return;
+    }
+    
+    setLoadingDebt(true);
+    setDebtNotRegistered(false);
+    
+    try {
+      const response = await apiCall(`/player/debt/${period}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setDebt(data.amount || 0);
+        setDebtNotRegistered(false);
+      } else {
+        setDebt(0);
+        setDebtNotRegistered(false);
+      }
+    } catch (error) {
+      console.error('Error cargando deuda:', error);
+      
+      // Si es un error 404, intentar obtener el detalle del error
+      if (error.message && error.message.includes('404')) {
+        try {
+          // Hacer la llamada nuevamente pero directamente con fetch para obtener el JSON del error
+          const token = await getAuthToken();
+          const backendUrl = import.meta.env.DEV 
+            ? 'http://localhost:8000' 
+            : 'https://api.pasesfalsos.cl';
+          
+          const directResponse = await fetch(`${backendUrl}/player/debt/${period}`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            }
+          });
+          
+          if (directResponse.status === 404) {
+            const errorData = await directResponse.json();
+            console.log('Error data:', errorData);
+            
+            // Verificar si el mensaje es de deuda no encontrada
+            if (errorData.detail && errorData.detail.includes('No tienes deuda registrada')) {
+              // No es un error, simplemente no hay deuda registrada
+              setDebt(0);
+              setDebtNotRegistered(true);
+              return;
+            }
+          }
+        } catch (directError) {
+          console.error('Error obteniendo detalle del error:', directError);
+        }
+      }
+      
+      setDebt(0);
+      setDebtNotRegistered(false);
+    } finally {
+      setLoadingDebt(false);
+    }
+  };
+
+  useEffect(() => {
+    setPeriod(getCurrentPeriod());
+  }, []);
+
+  useEffect(() => {
+    if (period) {
+      loadPayments();
+      
+      // Solo cargar deuda si hay un período específico (no "all")
+      if (period !== 'all') {
+        loadDebt();
+      } else {
+        setDebt(0);
+        setDebtNotRegistered(false);
+      }
+      
+      setPage(1); // Reset page when period changes
+    }
+  }, [period]);
+
+  const handleViewReceipt = async (payment) => {
+    setReceiptLoading(true);
+    setError('');
+    
+    try {
+      const response = await apiCall(`/payments/${payment.id}/download-url?expires_in=3600`);
+      
+      if (!response.ok) {
+        throw new Error('Error obteniendo URL del comprobante');
+      }
+
+      const { download_url } = await response.json();
+      setReceiptUrl(download_url);
+      setReceiptDialogOpen(true);
+      
+    } catch (error) {
+      console.error('Error obteniendo comprobante:', error);
+      setError('Error obteniendo comprobante');
+    } finally {
+      setReceiptLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP'
+    }).format(amount);
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatPeriod = (period) => {
+    // Convierte "202510" a "Octubre 2025"
+    if (!period || period.length !== 6) return period;
+    
+    const year = period.substring(0, 4);
+    const month = period.substring(4, 6);
+    
+    // Crear fecha del primer día del mes para obtener el nombre del mes
+    const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+    
+    // Formato: "Octubre 2025" (sin "de")
+    const monthName = date.toLocaleDateString('es-ES', { 
+      year: 'numeric', 
+      month: 'long' 
+    }).replace(/^\w/, (c) => c.toUpperCase()).replace(' de ', ' ');
+    
+    return monthName;
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'verified': return 'success';
+      case 'pending': return 'warning';
+      case 'rejected': return 'error';
+      default: return 'default';
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'verified': return 'Verificado';
+      case 'pending': return 'Pendiente';
+      case 'rejected': return 'Rechazado';
+      default: return status;
+    }
+  };
+
+  const handlePageChange = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleRefresh = () => {
+    loadPayments();
+    loadDebt();
+  };
+
+  const handleDeletePayment = async () => {
+    if (!paymentToDelete) return;
+
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await apiCall(`/payments/${paymentToDelete.id}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Error eliminando pago');
+      }
+
+      setSuccess('Pago eliminado exitosamente');
+      setDeleteDialogOpen(false);
+      setPaymentToDelete(null);
+      
+      // Recargar pagos
+      loadPayments();
+
+    } catch (error) {
+      console.error('Error eliminando pago:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenDeleteDialog = (payment) => {
+    setPaymentToDelete(payment);
+    setDeleteDialogOpen(true);
+  };
+
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" component="h1">
+          Mis Pagos
+        </Typography>
+        <Button
+          variant="outlined"
+          startIcon={<RefreshIcon />}
+          onClick={handleRefresh}
+          disabled={loading}
+        >
+          Actualizar
+        </Button>
+      </Box>
+
+      {/* Selector de período */}
+      <Box sx={{ mb: 3 }}>
+        <Paper elevation={1} sx={{ p: 2, mb: 2 }}>
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel>Período</InputLabel>
+            <Select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+              label="Período"
+            >
+              <MenuItem value="all">Todos los períodos</MenuItem>
+              {generatePeriods().map((periodOption) => (
+                <MenuItem key={periodOption.value} value={periodOption.value}>
+                  {periodOption.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Paper>
+
+        {/* Mensajes según el estado del pago */}
+        {period && period !== 'all' && !loading && !loadingDebt && (
+          <>
+            {/* Mensaje de felicitaciones cuando ha pagado toda la deuda */}
+            {totalPaid >= debt && debt > 0 && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                ¡Felicitaciones, has pagado tu deuda del mes de {formatPeriod(period)}!
+              </Alert>
+            )}
+
+            {/* Mensaje de advertencia cuando aún debe pagar */}
+            {totalPaid < debt && debt > 0 && (
+              <Alert 
+                severity="warning" 
+                sx={{ mb: 2 }}
+                action={
+                  <Button 
+                    onClick={() => navigate('/registrar-pago')}
+                    size="small"
+                    variant="outlined"
+                  >
+                    Registrar Pago
+                  </Button>
+                }
+              >
+                Aún no pagas el periodo {formatPeriod(period)}. Te invitamos a registrar tu pago.
+              </Alert>
+            )}
+
+            {/* Mensaje informativo cuando no hay deuda registrada */}
+            {debtNotRegistered && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                Aún no se ha cargado en sistema tu deuda para el mes de: {formatPeriod(period)}
+              </Alert>
+            )}
+          </>
+        )}
+      </Box>
+
+      {/* Estadísticas */}
+      {/* Vista desktop - con cards */}
+      {!isMobile && (
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          {/* Cards de resumen - solo si hay un período seleccionado */}
+          {period && period !== 'all' && (
+            <>
+              <Grid item xs={12} sm={6} sx={{ flex: '1 1 0', minWidth: 0 }}>
+                <Card>
+                  <CardContent>
+                    <Typography color="textSecondary" gutterBottom>
+                      Total Abonado
+                    </Typography>
+                    {loading ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                        <CircularProgress size={24} />
+                      </Box>
+                    ) : (
+                      <>
+                        <Typography variant="h4" color="success.main">
+                          {formatCurrency(totalPaid)}
+                        </Typography>
+                        <Typography variant="caption" color="textSecondary">
+                          Pagos verificados: {formatCurrency(totalVerified)}
+                        </Typography>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} sm={6} sx={{ flex: '1 1 0', minWidth: 0 }}>
+                <Card>
+                  <CardContent>
+                    <Typography color="textSecondary" gutterBottom>
+                      Deuda del Período
+                    </Typography>
+                    {loadingDebt ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                        <CircularProgress size={24} />
+                      </Box>
+                    ) : (
+                      <>
+                        <Typography variant="h4" color="error.main">
+                          {formatCurrency(debt)}
+                        </Typography>
+                        <Typography variant="caption" color="textSecondary">
+                          {formatPeriod(period)}
+                        </Typography>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+            </>
+          )}
+          
+          <Grid item xs={12} sm={6} md={period && period !== 'all' ? undefined : 4} sx={{ 
+            ...(period && period !== 'all' ? { flex: '1 1 0', minWidth: 0 } : {})
+          }}>
+            <Card>
+              <CardContent>
+                <Typography color="textSecondary" gutterBottom>
+                  Total Pagos
+                </Typography>
+                {loading ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                    <CircularProgress size={24} />
+                  </Box>
+                ) : (
+                  <Typography variant="h4">
+                    {totalPayments}
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={period && period !== 'all' ? undefined : 4} sx={{ 
+            ...(period && period !== 'all' ? { flex: '1 1 0', minWidth: 0 } : {})
+          }}>
+            <Card>
+              <CardContent>
+                <Typography color="textSecondary" gutterBottom>
+                  Verificados
+                </Typography>
+                {loading ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                    <CircularProgress size={24} />
+                  </Box>
+                ) : (
+                  <Typography variant="h4" color="success.main">
+                    {payments.filter(p => p.status === 'verified').length}
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={period && period !== 'all' ? undefined : 4} sx={{ 
+            ...(period && period !== 'all' ? { flex: '1 1 0', minWidth: 0 } : {})
+          }}>
+            <Card>
+              <CardContent>
+                <Typography color="textSecondary" gutterBottom>
+                  Pendientes
+                </Typography>
+                {loading ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                    <CircularProgress size={24} />
+                  </Box>
+                ) : (
+                  <Typography variant="h4" color="warning.main">
+                    {payments.filter(p => p.status === 'pending').length}
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+
+      {/* Vista mobile - sin cards, solo texto */}
+      {isMobile && (
+        <Box sx={{ mb: 3 }}>
+          {/* Cards de resumen - solo si hay un período seleccionado */}
+          {period && period !== 'all' && (
+            <>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography color="textSecondary" variant="body1">
+                  Total Abonado
+                </Typography>
+                {loading ? (
+                  <CircularProgress size={24} />
+                ) : (
+                  <Typography variant="h5" color="success.main" fontWeight="medium">
+                    {formatCurrency(totalPaid)}
+                  </Typography>
+                )}
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography color="textSecondary" variant="body1">
+                  Deuda del Período
+                </Typography>
+                {loadingDebt ? (
+                  <CircularProgress size={24} />
+                ) : (
+                  <Typography variant="h5" color="error.main" fontWeight="medium">
+                    {formatCurrency(debt)}
+                  </Typography>
+                )}
+              </Box>
+            </>
+          )}
+          
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography color="textSecondary" variant="body1">
+              Total Pagos
+            </Typography>
+            <Typography variant="h5" fontWeight="medium">
+              {totalPayments}
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography color="textSecondary" variant="body1">
+              Verificados
+            </Typography>
+            <Typography variant="h5" color="success.main" fontWeight="medium">
+              {payments.filter(p => p.status === 'verified').length}
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography color="textSecondary" variant="body1">
+              Pendientes
+            </Typography>
+            <Typography variant="h5" color="warning.main" fontWeight="medium">
+              {payments.filter(p => p.status === 'pending').length}
+            </Typography>
+          </Box>
+        </Box>
+      )}
+
+      {/* Vista desktop - con cards */}
+          {!isMobile && (
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+              {/* Cards de resumen - solo si hay un período seleccionado */}
+              {period && period !== 'all' && (
+                <>
+                  <Grid item xs={12} sm={6} sx={{ flex: '1 1 0', minWidth: 0 }}>
+                    <Card>
+                      <CardContent>
+                        <Typography color="textSecondary" gutterBottom>
+                          Total Abonado
+                        </Typography>
+                        {loading ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                            <CircularProgress size={24} />
+                          </Box>
+                        ) : (
+                          <>
+                            <Typography variant="h4" color="success.main">
+                              {formatCurrency(totalPaid)}
+                            </Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              Pagos verificados: {formatCurrency(totalVerified)}
+                            </Typography>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={6} sx={{ flex: '1 1 0', minWidth: 0 }}>
+                    <Card>
+                      <CardContent>
+                        <Typography color="textSecondary" gutterBottom>
+                          Deuda del Período
+                        </Typography>
+                        {loadingDebt ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                            <CircularProgress size={24} />
+                          </Box>
+                        ) : (
+                          <>
+                            <Typography variant="h4" color="error.main">
+                              {formatCurrency(debt)}
+                            </Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              {formatPeriod(period)}
+                            </Typography>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </>
+              )}
+              
+              <Grid item xs={12} sm={6} md={period && period !== 'all' ? undefined : 4} sx={{ 
+                ...(period && period !== 'all' ? { flex: '1 1 0', minWidth: 0 } : {})
+              }}>
+                <Card>
+                  <CardContent>
+                    <Typography color="textSecondary" gutterBottom>
+                      Total Pagos
+                    </Typography>
+                    {loading ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                        <CircularProgress size={24} />
+                      </Box>
+                    ) : (
+                      <Typography variant="h4">
+                        {totalPayments}
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} sm={6} md={period && period !== 'all' ? undefined : 4} sx={{ 
+                ...(period && period !== 'all' ? { flex: '1 1 0', minWidth: 0 } : {})
+              }}>
+                <Card>
+                  <CardContent>
+                    <Typography color="textSecondary" gutterBottom>
+                      Verificados
+                    </Typography>
+                    {loading ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                        <CircularProgress size={24} />
+                      </Box>
+                    ) : (
+                      <Typography variant="h4" color="success.main">
+                        {payments.filter(p => p.status === 'verified').length}
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} sm={6} md={period && period !== 'all' ? undefined : 4} sx={{ 
+                ...(period && period !== 'all' ? { flex: '1 1 0', minWidth: 0 } : {})
+              }}>
+                <Card>
+                  <CardContent>
+                    <Typography color="textSecondary" gutterBottom>
+                      Pendientes
+                    </Typography>
+                    {loading ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                        <CircularProgress size={24} />
+                      </Box>
+                    ) : (
+                      <Typography variant="h4" color="warning.main">
+                        {payments.filter(p => p.status === 'pending').length}
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          )}
+
+          {/* Vista mobile - sin cards, solo texto */}
+          {isMobile && (
+            <Box sx={{ mb: 3 }}>
+              {/* Cards de resumen - solo si hay un período seleccionado */}
+              {period && period !== 'all' && (
+                <>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography color="textSecondary" variant="body1">
+                      Total Abonado
+                    </Typography>
+                    {loading ? (
+                      <CircularProgress size={24} />
+                    ) : (
+                      <Typography variant="h5" color="success.main" fontWeight="medium">
+                        {formatCurrency(totalPaid)}
+                      </Typography>
+                    )}
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography color="textSecondary" variant="body1">
+                      Deuda del Período
+                    </Typography>
+                    {loadingDebt ? (
+                      <CircularProgress size={24} />
+                    ) : (
+                      <Typography variant="h5" color="error.main" fontWeight="medium">
+                        {formatCurrency(debt)}
+                      </Typography>
+                    )}
+                  </Box>
+                </>
+              )}
+              
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography color="textSecondary" variant="body1">
+                  Total Pagos
+                </Typography>
+                <Typography variant="h5" fontWeight="medium">
+                  {totalPayments}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography color="textSecondary" variant="body1">
+                  Verificados
+                </Typography>
+                <Typography variant="h5" color="success.main" fontWeight="medium">
+                  {payments.filter(p => p.status === 'verified').length}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography color="textSecondary" variant="body1">
+                  Pendientes
+                </Typography>
+                <Typography variant="h5" color="warning.main" fontWeight="medium">
+                  {payments.filter(p => p.status === 'pending').length}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+
+      {/* Alertas */}
+      {error && (
+        <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert severity="success" onClose={() => setSuccess('')} sx={{ mb: 2 }}>
+          {success}
+        </Alert>
+      )}
+
+      {/* Vista de escritorio - Tabla */}
+      {!isMobile && (
+        <Paper elevation={2}>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Monto</TableCell>
+                  <TableCell>Período</TableCell>
+                  <TableCell>Fecha de Registro</TableCell>
+                  <TableCell>Estado</TableCell>
+                  <TableCell>Comprobante</TableCell>
+                  <TableCell>Acciones</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">
+                      <CircularProgress />
+                    </TableCell>
+                  </TableRow>
+                ) : payments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">
+                      <Typography color="text.secondary">
+                        No se encontraron pagos
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  payments.map((payment) => (
+                    <TableRow key={payment.id}>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="medium">
+                          {formatCurrency(payment.amount)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {formatPeriod(payment.period)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {formatDate(payment.created_at)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getStatusLabel(payment.status)}
+                          color={getStatusColor(payment.status)}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {payment.receipt_image_url ? (
+                          <Tooltip title="Ver comprobante">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleViewReceipt(payment)}
+                              disabled={receiptLoading}
+                            >
+                              {receiptLoading ? <CircularProgress size={20} /> : <EyeIcon />}
+                            </IconButton>
+                          </Tooltip>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">
+                            Sin comprobante
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Tooltip title="Ver detalles">
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                setSelectedPayment(payment);
+                                setViewDialogOpen(true);
+                              }}
+                            >
+                              <VisibilityIcon />
+                            </IconButton>
+                          </Tooltip>
+
+                          <Tooltip title="Eliminar pago">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleOpenDeleteDialog(payment)}
+                              color="error"
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          {/* Paginación */}
+          {totalPages > 1 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={handlePageChange}
+                color="primary"
+              />
+            </Box>
+          )}
+        </Paper>
+      )}
+
+      {/* Vista móvil - Cards */}
+      {isMobile && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : payments.length === 0 ? (
+            <Paper sx={{ p: 3, textAlign: 'center' }}>
+              <Typography color="text.secondary">
+                No se encontraron pagos
+              </Typography>
+            </Paper>
+          ) : (
+            <>
+              {payments.map((payment) => (
+                <Card key={payment.id} elevation={2}>
+                  <CardContent>
+                    {/* Monto */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                      <Typography variant="h6" fontWeight="bold" color="success.main">
+                        {formatCurrency(payment.amount)}
+                      </Typography>
+                      <Chip
+                        label={getStatusLabel(payment.status)}
+                        color={getStatusColor(payment.status)}
+                        size="small"
+                      />
+                    </Box>
+
+                    <Divider sx={{ mb: 2 }} />
+
+                    {/* Información */}
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CalendarMonthIcon fontSize="small" color="primary" />
+                        <Typography variant="body2" color="text.secondary">
+                          Período:
+                        </Typography>
+                        <Typography variant="body2" fontWeight="medium">
+                          {formatPeriod(payment.period)}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <EventIcon fontSize="small" color="primary" />
+                        <Typography variant="body2" color="text.secondary">
+                          Registrado:
+                        </Typography>
+                        <Typography variant="body2" fontWeight="medium">
+                          {formatDate(payment.created_at)}
+                        </Typography>
+                      </Box>
+
+                      {payment.receipt_image_url && (
+                        <Box 
+                          sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 1,
+                            cursor: 'pointer',
+                            '&:hover': {
+                              opacity: 0.7
+                            }
+                          }}
+                          onClick={() => handleViewReceipt(payment)}
+                        >
+                          <ReceiptIcon fontSize="small" color="primary" />
+                          <Typography variant="body2" color="success.main">
+                            Comprobante disponible
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+
+                    {/* Acciones */}
+                    <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<VisibilityIcon />}
+                        onClick={() => {
+                          setSelectedPayment(payment);
+                          setViewDialogOpen(true);
+                        }}
+                        sx={{ flex: 1 }}
+                      >
+                        Ver Detalles
+                      </Button>
+                      
+                      {payment.receipt_image_url && (
+                        <Tooltip title="Ver comprobante">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleViewReceipt(payment)}
+                            disabled={receiptLoading}
+                            color="primary"
+                          >
+                            {receiptLoading ? <CircularProgress size={20} /> : <EyeIcon />}
+                          </IconButton>
+                        </Tooltip>
+                      )}
+
+                      <Tooltip title="Eliminar pago">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenDeleteDialog(payment)}
+                          color="error"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* Paginación móvil */}
+              {totalPages > 1 && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                  <Pagination
+                    count={totalPages}
+                    page={page}
+                    onChange={handlePageChange}
+                    color="primary"
+                  />
+                </Box>
+              )}
+            </>
+          )}
+        </Box>
+      )}
+
+      {/* Dialog para ver detalles del pago */}
+      <Dialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Detalles del Pago</DialogTitle>
+        <DialogContent>
+          {selectedPayment && (
+            <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {/* Monto */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <AttachMoneyIcon color="success" />
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Monto
+                  </Typography>
+                  <Typography variant="body1" fontWeight="medium" color="success.main">
+                    {formatCurrency(selectedPayment.amount)}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Período */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <CalendarMonthIcon color="primary" />
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Período
+                  </Typography>
+                  <Typography variant="body1">
+                    {formatPeriod(selectedPayment.period)}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Fecha de Registro */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <EventIcon color="primary" />
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Fecha de Registro
+                  </Typography>
+                  <Typography variant="body1">
+                    {formatDate(selectedPayment.created_at)}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Estado */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <CheckCircleIcon color={getStatusColor(selectedPayment.status)} />
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Estado
+                  </Typography>
+                  <Chip
+                    label={getStatusLabel(selectedPayment.status)}
+                    color={getStatusColor(selectedPayment.status)}
+                    size="small"
+                  />
+                </Box>
+              </Box>
+
+              {/* Notas */}
+              {selectedPayment.notes && (
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                  <DescriptionIcon color="primary" sx={{ mt: 0.5 }} />
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Notas
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedPayment.notes}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+
+              {/* Comprobante */}
+              {selectedPayment.receipt_image_url && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <ReceiptIcon color="primary" />
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                      Comprobante
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      startIcon={<EyeIcon />}
+                      onClick={() => handleViewReceipt(selectedPayment)}
+                      disabled={receiptLoading}
+                    >
+                      {receiptLoading ? 'Cargando...' : 'Ver Comprobante'}
+                    </Button>
+                  </Box>
+                </Box>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewDialogOpen(false)}>
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog para mostrar comprobante */}
+      <Dialog 
+        open={receiptDialogOpen} 
+        onClose={() => setReceiptDialogOpen(false)} 
+        maxWidth="lg" 
+        fullWidth
+      >
+        <DialogTitle>Comprobante de Pago</DialogTitle>
+        <DialogContent>
+          {receiptUrl && (
+            <Box sx={{ mt: 2, textAlign: 'center' }}>
+              <img
+                src={receiptUrl}
+                alt="Comprobante de pago"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '70vh',
+                  objectFit: 'contain',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '8px'
+                }}
+                onError={(e) => {
+                  console.error('Error cargando imagen:', e);
+                  setError('Error cargando el comprobante');
+                }}
+              />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setReceiptDialogOpen(false)}>
+            Cerrar
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<DownloadIcon />}
+            onClick={async () => {
+              if (receiptUrl) {
+                try {
+                  // Obtener el archivo como blob
+                  const response = await fetch(receiptUrl);
+                  const blob = await response.blob();
+                  
+                  // Crear URL del blob
+                  const blobUrl = window.URL.createObjectURL(blob);
+                  
+                  // Crear elemento de descarga
+                  const link = document.createElement('a');
+                  link.href = blobUrl;
+                  link.download = `comprobante-${selectedPayment?.id || 'pago'}.jpg`;
+                  document.body.appendChild(link);
+                  link.click();
+                  
+                  // Limpiar
+                  document.body.removeChild(link);
+                  window.URL.revokeObjectURL(blobUrl);
+                } catch (error) {
+                  console.error('Error descargando archivo:', error);
+                  setError('Error descargando el comprobante');
+                }
+              }
+            }}
+          >
+            Descargar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog para confirmar eliminación */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Confirmar Eliminación</DialogTitle>
+        <DialogContent>
+          {paymentToDelete && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body1" paragraph>
+                ¿Estás seguro de que deseas eliminar este pago?
+              </Typography>
+              
+              <Typography variant="body2" color="text.secondary" paragraph>
+                <strong>ID:</strong> {paymentToDelete.id}<br/>
+                <strong>Monto:</strong> {formatCurrency(paymentToDelete.amount)}<br/>
+                <strong>Período:</strong> {formatPeriod(paymentToDelete.period)}
+              </Typography>
+
+              <Alert severity="warning">
+                Esta acción no se puede deshacer.
+              </Alert>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleDeletePayment}
+            variant="contained"
+            color="error"
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={20} /> : null}
+          >
+            {loading ? 'Eliminando...' : 'Eliminar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+export default MisPagos;
+
