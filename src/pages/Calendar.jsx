@@ -30,6 +30,7 @@ import {
   Autocomplete,
 } from '@mui/material';
 import { buildApiUrl, apiCall, API_ENDPOINTS } from '../config/api';
+import { useAuth } from '../contexts/AuthContext';
 import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
@@ -44,6 +45,7 @@ import logoSante from '../assets/logo-sante.jpg';
 import logoBohemios from '../assets/logo-bohemios.jpg';
 
 const Calendar = () => {
+  const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [items, setItems] = useState([]);
@@ -378,24 +380,16 @@ const Calendar = () => {
     setDeletingAttendee(null);
     setConfirmDeleteOpen(false);
     setAttendeeToDelete(null);
-    setMagicWord('');
     setShouldRotateLogo(false);
     setLogoAnimationPhase('idle');
   };
 
   const handleDeleteAttendee = (attendeeName) => {
     setAttendeeToDelete(attendeeName);
-    setMagicWord('');
     setConfirmDeleteOpen(true);
   };
 
   const handleConfirmDelete = async () => {
-    if (magicWord.toLowerCase() !== 'synco') {
-      setAttendanceMessage('Palabra incorrecta. Comunícate con el administrador');
-      setSnackbarOpen(true);
-      return;
-    }
-
     if (!selectedEvent?.id || !attendeeToDelete) {
       setAttendanceMessage('Error: No se pudo obtener la información necesaria');
       setSnackbarOpen(true);
@@ -439,14 +433,12 @@ const Calendar = () => {
     } finally {
       setDeletingAttendee(null);
       setAttendeeToDelete(null);
-      setMagicWord('');
     }
   };
 
   const handleCancelDelete = () => {
     setConfirmDeleteOpen(false);
     setAttendeeToDelete(null);
-    setMagicWord('');
   };
 
   // Listas de asistentes por tipo de evento
@@ -498,6 +490,26 @@ const Calendar = () => {
   const isValidName = (name) => {
     const validNames = getAsistentesList(selectedEvent?.summary);
     return validNames.includes(name.trim());
+  };
+
+  // Función helper para determinar si se debe mostrar el botón de eliminar
+  const shouldShowDeleteButton = (attendeeName) => {
+    // Si el usuario es admin, siempre mostrar el botón
+    if (user?.roles?.includes('admin')) {
+      return true;
+    }
+    
+    // Si el usuario es player, solo mostrar si el nombre coincide con su nickname
+    if (user?.roles?.includes('player')) {
+      const userNickname = user?.nickname?.trim().toLowerCase();
+      const attendeeNameNormalized = attendeeName?.trim().toLowerCase();
+      
+      // Comparar nickname exacto (sin importar mayúsculas/minúsculas)
+      return userNickname && userNickname === attendeeNameNormalized;
+    }
+    
+    // Por defecto, no mostrar
+    return false;
   };
 
   // Función para obtener el logo de la liga según el tipo de evento
@@ -1729,35 +1741,37 @@ const Calendar = () => {
                                 backgroundColor: 'success.main',
                                 color: 'success.contrastText',
                                 fontWeight: 'bold',
-                                pr: 3 // Espacio para el icono
+                                pr: shouldShowDeleteButton(attendee) ? 3 : 0.5 // Espacio para el icono solo si se muestra
                               }}
                             />
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDeleteAttendee(attendee)}
-                              disabled={deletingAttendee === attendee}
-                              sx={{
-                                position: 'absolute',
-                                top: -8,
-                                right: -8,
-                                backgroundColor: 'error.main',
-                                color: 'error.contrastText',
-                                width: 20,
-                                height: 20,
-                                '&:hover': {
-                                  backgroundColor: 'error.dark',
-                                },
-                                '&:disabled': {
-                                  backgroundColor: 'error.light',
-                                }
-                              }}
-                            >
-                              {deletingAttendee === attendee ? (
-                                <CircularProgress size={12} color="inherit" />
-                              ) : (
-                                <CloseIcon sx={{ fontSize: 12 }} />
-                              )}
-                            </IconButton>
+                            {shouldShowDeleteButton(attendee) && (
+                              <IconButton
+                                size="small"
+                                onClick={() => handleDeleteAttendee(attendee)}
+                                disabled={deletingAttendee === attendee}
+                                sx={{
+                                  position: 'absolute',
+                                  top: -8,
+                                  right: -8,
+                                  backgroundColor: 'error.main',
+                                  color: 'error.contrastText',
+                                  width: 20,
+                                  height: 20,
+                                  '&:hover': {
+                                    backgroundColor: 'error.dark',
+                                  },
+                                  '&:disabled': {
+                                    backgroundColor: 'error.light',
+                                  }
+                                }}
+                              >
+                                {deletingAttendee === attendee ? (
+                                  <CircularProgress size={12} color="inherit" />
+                                ) : (
+                                  <CloseIcon sx={{ fontSize: 12 }} />
+                                )}
+                              </IconButton>
+                            )}
                           </Box>
                         ))}
                       </Box>
@@ -1800,35 +1814,37 @@ const Calendar = () => {
                                 backgroundColor: 'warning.main',
                                 color: 'warning.contrastText',
                                 fontWeight: 'bold',
-                                pr: 3
+                                pr: shouldShowDeleteButton(name) ? 3 : 0.5 // Espacio para el icono solo si se muestra
                               }}
                             />
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDeleteAttendee(name)}
-                              disabled={deletingAttendee === name}
-                              sx={{
-                                position: 'absolute',
-                                top: -8,
-                                right: -8,
-                                backgroundColor: 'error.main',
-                                color: 'error.contrastText',
-                                width: 20,
-                                height: 20,
-                                '&:hover': {
-                                  backgroundColor: 'error.dark',
-                                },
-                                '&:disabled': {
-                                  backgroundColor: 'error.light',
-                                }
-                              }}
-                            >
-                              {deletingAttendee === name ? (
-                                <CircularProgress size={12} color="inherit" />
-                              ) : (
-                                <CloseIcon sx={{ fontSize: 12 }} />
-                              )}
-                            </IconButton>
+                            {shouldShowDeleteButton(name) && (
+                              <IconButton
+                                size="small"
+                                onClick={() => handleDeleteAttendee(name)}
+                                disabled={deletingAttendee === name}
+                                sx={{
+                                  position: 'absolute',
+                                  top: -8,
+                                  right: -8,
+                                  backgroundColor: 'error.main',
+                                  color: 'error.contrastText',
+                                  width: 20,
+                                  height: 20,
+                                  '&:hover': {
+                                    backgroundColor: 'error.dark',
+                                  },
+                                  '&:disabled': {
+                                    backgroundColor: 'error.light',
+                                  }
+                                }}
+                              >
+                                {deletingAttendee === name ? (
+                                  <CircularProgress size={12} color="inherit" />
+                                ) : (
+                                  <CloseIcon sx={{ fontSize: 12 }} />
+                                )}
+                              </IconButton>
+                            )}
                           </Box>
                         ))}
                       </Box>
@@ -1908,20 +1924,9 @@ const Calendar = () => {
 
           {/* Modal Content */}
           <Box sx={{ p: 3 }}>
-            <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
-              ¿Cuál es la palabra mágica?
+            <Typography variant="body1" gutterBottom sx={{ mb: 3 }}>
+              ¿Estás seguro de que deseas eliminar a <strong>{attendeeToDelete}</strong> de la lista?
             </Typography>
-            
-            <TextField
-              fullWidth
-              label="Palabra mágica"
-              value={magicWord}
-              onChange={(e) => setMagicWord(e.target.value)}
-              variant="outlined"
-              placeholder="Escribe la palabra mágica aquí..."
-              sx={{ mb: 3 }}
-              autoFocus
-            />
 
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
               <Button 
@@ -1935,7 +1940,6 @@ const Calendar = () => {
                 onClick={handleConfirmDelete} 
                 variant="contained"
                 color="error"
-                disabled={!magicWord.trim()}
               >
                 Eliminar
               </Button>
