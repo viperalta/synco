@@ -35,6 +35,8 @@ import {
   ChevronRight as ChevronRightIcon,
   OpenInNew as OpenInNewIcon,
   Close as CloseIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
 } from '@mui/icons-material';
 import logoPasco from '../assets/logo-pasco.jpg';
 import logoOriente from '../assets/logo-oriente.png';
@@ -1662,9 +1664,10 @@ const Calendar = () => {
                     }}>
                       <Button
                         variant="contained"
-                        color="secondary"
+                        color="primary"
                         onClick={() => handleAttendEvent(true)}
                         disabled={attending || !userName.trim() || !isValidName(userName)}
+                        startIcon={attending ? null : <CheckCircleIcon />}
                         sx={{ 
                           fontWeight: 'bold',
                           flex: 1,
@@ -1682,6 +1685,7 @@ const Calendar = () => {
                         color="inherit"
                         onClick={() => handleAttendEvent(false)}
                         disabled={attending || !userName.trim() || !isValidName(userName)}
+                        startIcon={<CancelIcon />}
                         sx={{ 
                           fontWeight: 'bold',
                           flex: 1,
