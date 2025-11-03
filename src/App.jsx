@@ -268,7 +268,11 @@ function App() {
                         <Deuda />
                       </AdminProtectedRoute>
                     } />
-                    <Route path="/share-target" element={<ShareTarget />} />
+                    <Route path="/share-target" element={
+                      <RoleProtectedRoute allowedRoles={['admin', 'player']}>
+                        <ShareTarget />
+                      </RoleProtectedRoute>
+                    } />
                   </Routes>
                 </Paper>
               </Container>
