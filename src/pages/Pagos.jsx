@@ -935,11 +935,98 @@ const Pagos = () => {
         )}
       </Paper>
 
-      {/* Resumen Mensual */}
+      {/* Resumen - Al día y Deuda impaga */}
+      {filterPeriod !== 'all' && (
+        <Box sx={{ mt: 4, mb: 3 }}>
+          <Typography variant="h5" component="h2" fontWeight="medium" sx={{ mb: 2 }}>
+            Resumen
+          </Typography>
+          
+          <Grid container spacing={2}>
+            {/* Card: Al día */}
+            <Grid item xs={12} sm={6}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" component="h3" sx={{ mb: 2, fontWeight: 'medium' }}>
+                    Al día
+                  </Typography>
+                  {loadingSummary ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                      <CircularProgress size={24} />
+                    </Box>
+                  ) : (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {monthlySummary
+                        .filter(user => user.status === 'paid')
+                        .map((user) => (
+                          <Chip
+                            key={user.user_id}
+                            label={user.user_nickname || user.user_name || 'Sin nickname'}
+                            sx={{
+                              backgroundColor: '#4caf50',
+                              color: 'white',
+                              fontWeight: 'medium'
+                            }}
+                            size="small"
+                          />
+                        ))}
+                      {monthlySummary.filter(user => user.status === 'paid').length === 0 && (
+                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                          No hay usuarios al día
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Card: Deuda impaga */}
+            <Grid item xs={12} sm={6}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" component="h3" sx={{ mb: 2, fontWeight: 'medium' }}>
+                    Deuda impaga
+                  </Typography>
+                  {loadingSummary ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                      <CircularProgress size={24} />
+                    </Box>
+                  ) : (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {monthlySummary
+                        .filter(user => user.status === 'unpaid')
+                        .map((user) => (
+                          <Chip
+                            key={user.user_id}
+                            label={user.user_nickname || user.user_name || 'Sin nickname'}
+                            sx={{
+                              backgroundColor: '#f44336',
+                              color: 'white',
+                              fontWeight: 'medium'
+                            }}
+                            size="small"
+                          />
+                        ))}
+                      {monthlySummary.filter(user => user.status === 'unpaid').length === 0 && (
+                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                          No hay usuarios con deuda impaga
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </Box>
+      )}
+
+      {/* Detalle Mensual */}
       {filterPeriod !== 'all' && (
         <Box sx={{ mt: 4 }}>
           <Typography variant="h5" component="h2" fontWeight="medium" sx={{ mb: 3 }}>
-            Resumen Mensual
+            Detalle Mensual
           </Typography>
           
           <Paper elevation={2}>
