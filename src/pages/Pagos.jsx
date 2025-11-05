@@ -29,6 +29,9 @@ import {
   Grid,
   Pagination,
   Checkbox,
+  useMediaQuery,
+  useTheme,
+  Divider,
 } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
@@ -54,6 +57,8 @@ import { authenticatedApiCall } from '../config/api';
 
 const Pagos = () => {
   const { authenticatedApiCall: apiCall } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // Función para obtener el período actual
   const getCurrentPeriod = () => {
@@ -593,119 +598,293 @@ const Pagos = () => {
 
       {/* Estadísticas y Deuda Total */}
       {(statistics || loadingStatistics) && (
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          {/* Deuda Total - solo si hay un período seleccionado */}
-          {filterPeriod !== 'all' && (
-            <Grid item xs={12} sm={6} sx={{ flex: '1 1 0', minWidth: 0 }}>
-              <Card>
-                <CardContent>
-                  <Typography color="textSecondary" gutterBottom>
+        <>
+          {/* Vista desktop - con cards */}
+          {!isMobile && (
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+              {/* Deuda Total - solo si hay un período seleccionado */}
+              {filterPeriod !== 'all' && (
+                <Grid item xs={12} sm={6} sx={{ flex: '1 1 0', minWidth: 0 }}>
+                  <Card>
+                    <CardContent>
+                      <Typography color="textSecondary" gutterBottom>
+                        Deuda Total
+                      </Typography>
+                      {loadingDebt ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                          <CircularProgress size={24} />
+                        </Box>
+                      ) : (
+                        <Typography variant="h4" color="error.main">
+                          {formatCurrency(totalDebt)}
+                        </Typography>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )}
+              
+              <Grid item xs={12} sm={6} md={filterPeriod !== 'all' ? undefined : 3} sx={{ 
+                ...(filterPeriod !== 'all' ? { flex: '1 1 0', minWidth: 0 } : {})
+              }}>
+                <Card>
+                  <CardContent>
+                    <Typography color="textSecondary" gutterBottom>
+                      Monto Total
+                    </Typography>
+                    {loadingStatistics || loading ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                        <CircularProgress size={24} />
+                      </Box>
+                    ) : (
+                      <Typography variant="h4">
+                        {(() => {
+                          // Calcular suma de pagos verificados y pendientes (excluye rechazados)
+                          const validPayments = allPayments.filter(p => p.status !== 'rejected');
+                          const totalAmount = validPayments.reduce((sum, p) => sum + p.amount, 0);
+                          return formatCurrency(totalAmount);
+                        })()}
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={filterPeriod !== 'all' ? undefined : 3} sx={{ 
+                ...(filterPeriod !== 'all' ? { flex: '1 1 0', minWidth: 0 } : {})
+              }}>
+                <Card>
+                  <CardContent>
+                    <Typography color="textSecondary" gutterBottom>
+                      Total Pagos
+                    </Typography>
+                    {loadingStatistics || !statistics ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                        <CircularProgress size={24} />
+                      </Box>
+                    ) : (
+                      <Typography variant="h4">
+                        {statistics.total_payments}
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={filterPeriod !== 'all' ? undefined : 3} sx={{ 
+                ...(filterPeriod !== 'all' ? { flex: '1 1 0', minWidth: 0 } : {})
+              }}>
+                <Card>
+                  <CardContent>
+                    <Typography color="textSecondary" gutterBottom>
+                      Verificados
+                    </Typography>
+                    {loadingStatistics || !statistics ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                        <CircularProgress size={24} />
+                      </Box>
+                    ) : (
+                      <Typography variant="h4" color="success.main">
+                        {statistics.by_status?.verified?.count || 0}
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={filterPeriod !== 'all' ? undefined : 3} sx={{ 
+                ...(filterPeriod !== 'all' ? { flex: '1 1 0', minWidth: 0 } : {})
+              }}>
+                <Card>
+                  <CardContent>
+                    <Typography color="textSecondary" gutterBottom>
+                      Pendientes
+                    </Typography>
+                    {loadingStatistics || !statistics ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                        <CircularProgress size={24} />
+                      </Box>
+                    ) : (
+                      <Typography variant="h4" color="warning.main">
+                        {statistics.by_status?.pending?.count || 0}
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          )}
+
+          {/* Vista mobile - lista */}
+          {isMobile && (
+            <Box sx={{ mb: 3 }}>
+              {/* Deuda Total - solo si hay un período seleccionado */}
+              {filterPeriod !== 'all' && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography color="textSecondary" variant="body1">
                     Deuda Total
                   </Typography>
                   {loadingDebt ? (
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
-                      <CircularProgress size={24} />
-                    </Box>
+                    <CircularProgress size={24} />
                   ) : (
-                    <Typography variant="h4" color="error.main">
+                    <Typography variant="h5" color="error.main" fontWeight="medium">
                       {formatCurrency(totalDebt)}
                     </Typography>
                   )}
-                </CardContent>
-              </Card>
-            </Grid>
-          )}
-          
-          <Grid item xs={12} sm={6} md={filterPeriod !== 'all' ? undefined : 3} sx={{ 
-            ...(filterPeriod !== 'all' ? { flex: '1 1 0', minWidth: 0 } : {})
-          }}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
+                </Box>
+              )}
+              
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography color="textSecondary" variant="body1">
                   Monto Total
                 </Typography>
                 {loadingStatistics || loading ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
-                    <CircularProgress size={24} />
-                  </Box>
+                  <CircularProgress size={24} />
                 ) : (
-                  <Typography variant="h4">
+                  <Typography variant="h5" fontWeight="medium">
                     {(() => {
-                      // Calcular suma de pagos verificados y pendientes (excluye rechazados)
                       const validPayments = allPayments.filter(p => p.status !== 'rejected');
                       const totalAmount = validPayments.reduce((sum, p) => sum + p.amount, 0);
                       return formatCurrency(totalAmount);
                     })()}
                   </Typography>
                 )}
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={filterPeriod !== 'all' ? undefined : 3} sx={{ 
-            ...(filterPeriod !== 'all' ? { flex: '1 1 0', minWidth: 0 } : {})
-          }}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
+              </Box>
+              
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography color="textSecondary" variant="body1">
                   Total Pagos
                 </Typography>
                 {loadingStatistics || !statistics ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
-                    <CircularProgress size={24} />
-                  </Box>
+                  <CircularProgress size={24} />
                 ) : (
-                  <Typography variant="h4">
+                  <Typography variant="h5" fontWeight="medium">
                     {statistics.total_payments}
                   </Typography>
                 )}
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={filterPeriod !== 'all' ? undefined : 3} sx={{ 
-            ...(filterPeriod !== 'all' ? { flex: '1 1 0', minWidth: 0 } : {})
-          }}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
+              </Box>
+              
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography color="textSecondary" variant="body1">
                   Verificados
                 </Typography>
                 {loadingStatistics || !statistics ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
-                    <CircularProgress size={24} />
-                  </Box>
+                  <CircularProgress size={24} />
                 ) : (
-                  <Typography variant="h4" color="success.main">
+                  <Typography variant="h5" color="success.main" fontWeight="medium">
                     {statistics.by_status?.verified?.count || 0}
                   </Typography>
                 )}
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={filterPeriod !== 'all' ? undefined : 3} sx={{ 
-            ...(filterPeriod !== 'all' ? { flex: '1 1 0', minWidth: 0 } : {})
-          }}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
+              </Box>
+              
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography color="textSecondary" variant="body1">
                   Pendientes
                 </Typography>
                 {loadingStatistics || !statistics ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
-                    <CircularProgress size={24} />
-                  </Box>
+                  <CircularProgress size={24} />
                 ) : (
-                  <Typography variant="h4" color="warning.main">
+                  <Typography variant="h5" color="warning.main" fontWeight="medium">
                     {statistics.by_status?.pending?.count || 0}
                   </Typography>
                 )}
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+              </Box>
+            </Box>
+          )}
+        </>
       )}
+
+      {/* Resumen - Al día y Deuda impaga - Solo Mobile */}
+      {isMobile && filterPeriod !== 'all' && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h5" component="h2" fontWeight="medium" sx={{ mb: 2 }}>
+            Resumen
+          </Typography>
+          
+          <Grid container spacing={2}>
+            {/* Card: Al día */}
+            <Grid item xs={12}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" component="h3" sx={{ mb: 2, fontWeight: 'medium' }}>
+                    Al día
+                  </Typography>
+                  {loadingSummary ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                      <CircularProgress size={24} />
+                    </Box>
+                  ) : (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {monthlySummary
+                        .filter(user => user.status === 'paid')
+                        .map((user) => (
+                          <Chip
+                            key={user.user_id}
+                            label={user.user_nickname || user.user_name || 'Sin nickname'}
+                            sx={(theme) => ({
+                              backgroundColor: theme.palette.success.main,
+                              color: theme.palette.success.contrastText,
+                              fontWeight: 'medium'
+                            })}
+                            size="small"
+                          />
+                        ))}
+                      {monthlySummary.filter(user => user.status === 'paid').length === 0 && (
+                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                          No hay usuarios al día
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Card: Deuda impaga */}
+            <Grid item xs={12}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" component="h3" sx={{ mb: 2, fontWeight: 'medium' }}>
+                    Deuda impaga
+                  </Typography>
+                  {loadingSummary ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+                      <CircularProgress size={24} />
+                    </Box>
+                  ) : (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {monthlySummary
+                        .filter(user => user.status === 'unpaid')
+                        .map((user) => (
+                          <Chip
+                            key={user.user_id}
+                            label={user.user_nickname || user.user_name || 'Sin nickname'}
+                            sx={(theme) => ({
+                              backgroundColor: theme.palette.error.main,
+                              color: theme.palette.error.contrastText,
+                              fontWeight: 'medium'
+                            })}
+                            size="small"
+                          />
+                        ))}
+                      {monthlySummary.filter(user => user.status === 'unpaid').length === 0 && (
+                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                          No hay usuarios con deuda impaga
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </Box>
+      )}
+
+      {/* Título Todos los pagos */}
+      <Typography variant="h5" component="h2" fontWeight="medium" sx={{ mb: 2 }}>
+        Todos los pagos
+      </Typography>
 
       {/* Filtros */}
       <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
@@ -786,157 +965,336 @@ const Pagos = () => {
         </Alert>
       )}
 
-      {/* Tabla de pagos */}
-      <Paper elevation={2}>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    indeterminate={selectedPayments.length > 0 && selectedPayments.length < payments.length}
-                    checked={payments.length > 0 && selectedPayments.length === payments.length}
-                    onChange={handleSelectAll}
-                  />
-                </TableCell>
-                <TableCell>Usuario</TableCell>
-                <TableCell>Monto</TableCell>
-                <TableCell>Período</TableCell>
-                <TableCell>Fecha Pago</TableCell>
-                <TableCell>Estado</TableCell>
-                <TableCell>Comprobante</TableCell>
-                <TableCell>Acciones</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
+      {/* Vista de escritorio - Tabla */}
+      {!isMobile && (
+        <Paper elevation={2}>
+          <TableContainer>
+            <Table>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
-                    <CircularProgress />
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      indeterminate={selectedPayments.length > 0 && selectedPayments.length < payments.length}
+                      checked={payments.length > 0 && selectedPayments.length === payments.length}
+                      onChange={handleSelectAll}
+                    />
                   </TableCell>
+                  <TableCell>Usuario</TableCell>
+                  <TableCell>Monto</TableCell>
+                  <TableCell>Período</TableCell>
+                  <TableCell>Fecha Pago</TableCell>
+                  <TableCell>Estado</TableCell>
+                  <TableCell>Comprobante</TableCell>
+                  <TableCell>Acciones</TableCell>
                 </TableRow>
-              ) : payments.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} align="center">
-                    <Typography color="text.secondary">
-                      No se encontraron pagos
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                payments.map((payment) => (
-                  <TableRow key={payment.id}>
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        checked={selectedPayments.includes(payment.id)}
-                        onChange={() => handleTogglePaymentSelection(payment.id)}
-                      />
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} align="center">
+                      <CircularProgress />
                     </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {payment.user_nickname || payment.user_name || 'N/A'}
+                  </TableRow>
+                ) : payments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} align="center">
+                      <Typography color="text.secondary">
+                        No se encontraron pagos
                       </Typography>
                     </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="medium">
-                        {formatCurrency(payment.amount)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {formatPeriod(payment.period)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {formatDate(payment.payment_date)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
+                  </TableRow>
+                ) : (
+                  payments.map((payment) => (
+                    <TableRow key={payment.id}>
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          checked={selectedPayments.includes(payment.id)}
+                          onChange={() => handleTogglePaymentSelection(payment.id)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {payment.user_nickname || payment.user_name || 'N/A'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="medium">
+                          {formatCurrency(payment.amount)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {formatPeriod(payment.period)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {formatDate(payment.payment_date)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getStatusLabel(payment.status)}
+                          color={getStatusColor(payment.status)}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {payment.receipt_image_url ? (
+                          <Tooltip title="Ver comprobante">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleViewReceipt(payment)}
+                              disabled={receiptLoading}
+                            >
+                              {receiptLoading ? <CircularProgress size={20} /> : <EyeIcon />}
+                            </IconButton>
+                          </Tooltip>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">
+                            Sin comprobante
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Tooltip title="Ver detalles">
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                setSelectedPayment(payment);
+                                setViewDialogOpen(true);
+                              }}
+                            >
+                              <VisibilityIcon />
+                            </IconButton>
+                          </Tooltip>
+                          
+                          {payment.status === 'pending' && (
+                            <Tooltip title="Verificar pago">
+                              <IconButton
+                                size="small"
+                                onClick={() => {
+                                  setSelectedPayment(payment);
+                                  setVerifyDialogOpen(true);
+                                }}
+                              >
+                                <CheckCircleIcon />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+
+                          <Tooltip title="Eliminar pago">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleOpenDeleteDialog(payment)}
+                              color="error"
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          {/* Paginación */}
+          {totalPages > 1 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={handlePageChange}
+                color="primary"
+              />
+            </Box>
+          )}
+        </Paper>
+      )}
+
+      {/* Vista móvil - Cards */}
+      {isMobile && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Selector de todos */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <Checkbox
+              indeterminate={selectedPayments.length > 0 && selectedPayments.length < payments.length}
+              checked={payments.length > 0 && selectedPayments.length === payments.length}
+              onChange={handleSelectAll}
+            />
+            <Typography variant="body2" color="text.secondary">
+              Seleccionar todos ({selectedPayments.length}/{payments.length})
+            </Typography>
+          </Box>
+
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : payments.length === 0 ? (
+            <Paper sx={{ p: 3, textAlign: 'center' }}>
+              <Typography color="text.secondary">
+                No se encontraron pagos
+              </Typography>
+            </Paper>
+          ) : (
+            <>
+              {payments.map((payment) => (
+                <Card key={payment.id} elevation={2}>
+                  <CardContent>
+                    {/* Header con checkbox y monto */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Checkbox
+                          checked={selectedPayments.includes(payment.id)}
+                          onChange={() => handleTogglePaymentSelection(payment.id)}
+                          size="small"
+                        />
+                        <Typography variant="h6" fontWeight="bold" color="success.main">
+                          {formatCurrency(payment.amount)}
+                        </Typography>
+                      </Box>
                       <Chip
                         label={getStatusLabel(payment.status)}
                         color={getStatusColor(payment.status)}
                         size="small"
                       />
-                    </TableCell>
-                    <TableCell>
-                      {payment.receipt_image_url ? (
+                    </Box>
+
+                    <Divider sx={{ mb: 2 }} />
+
+                    {/* Información */}
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <PersonIcon fontSize="small" color="primary" />
+                        <Typography variant="body2" color="text.secondary">
+                          Usuario:
+                        </Typography>
+                        <Typography variant="body2" fontWeight="medium">
+                          {payment.user_nickname || payment.user_name || 'N/A'}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CalendarMonthIcon fontSize="small" color="primary" />
+                        <Typography variant="body2" color="text.secondary">
+                          Período:
+                        </Typography>
+                        <Typography variant="body2" fontWeight="medium">
+                          {formatPeriod(payment.period)}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <EventIcon fontSize="small" color="primary" />
+                        <Typography variant="body2" color="text.secondary">
+                          Fecha Pago:
+                        </Typography>
+                        <Typography variant="body2" fontWeight="medium">
+                          {formatDate(payment.payment_date)}
+                        </Typography>
+                      </Box>
+
+                      {payment.receipt_image_url && (
+                        <Box 
+                          sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 1,
+                            cursor: 'pointer',
+                            '&:hover': {
+                              opacity: 0.7
+                            }
+                          }}
+                          onClick={() => handleViewReceipt(payment)}
+                        >
+                          <ReceiptIcon fontSize="small" color="primary" />
+                          <Typography variant="body2" color="success.main">
+                            Comprobante disponible
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+
+                    {/* Acciones */}
+                    <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<VisibilityIcon />}
+                        onClick={() => {
+                          setSelectedPayment(payment);
+                          setViewDialogOpen(true);
+                        }}
+                        sx={{ flex: 1, minWidth: '120px' }}
+                      >
+                        Ver Detalles
+                      </Button>
+                      
+                      {payment.status === 'pending' && (
+                        <Tooltip title="Verificar pago">
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedPayment(payment);
+                              setVerifyDialogOpen(true);
+                            }}
+                            color="success"
+                          >
+                            <CheckCircleIcon />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      
+                      {payment.receipt_image_url && (
                         <Tooltip title="Ver comprobante">
                           <IconButton
                             size="small"
                             onClick={() => handleViewReceipt(payment)}
                             disabled={receiptLoading}
+                            color="primary"
                           >
                             {receiptLoading ? <CircularProgress size={20} /> : <EyeIcon />}
                           </IconButton>
                         </Tooltip>
-                      ) : (
-                        <Typography variant="caption" color="text.secondary">
-                          Sin comprobante
-                        </Typography>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Tooltip title="Ver detalles">
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              setSelectedPayment(payment);
-                              setViewDialogOpen(true);
-                            }}
-                          >
-                            <VisibilityIcon />
-                          </IconButton>
-                        </Tooltip>
-                        
-                        {payment.status === 'pending' && (
-                          <Tooltip title="Verificar pago">
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                setSelectedPayment(payment);
-                                setVerifyDialogOpen(true);
-                              }}
-                            >
-                              <CheckCircleIcon />
-                            </IconButton>
-                          </Tooltip>
-                        )}
 
-                        <Tooltip title="Eliminar pago">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleOpenDeleteDialog(payment)}
-                            color="error"
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))
+                      <Tooltip title="Eliminar pago">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenDeleteDialog(payment)}
+                          color="error"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* Paginación móvil */}
+              {totalPages > 1 && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                  <Pagination
+                    count={totalPages}
+                    page={page}
+                    onChange={handlePageChange}
+                    color="primary"
+                  />
+                </Box>
               )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+            </>
+          )}
+        </Box>
+      )}
 
-        {/* Paginación */}
-        {totalPages > 1 && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={handlePageChange}
-              color="primary"
-            />
-          </Box>
-        )}
-      </Paper>
-
-      {/* Resumen - Al día y Deuda impaga */}
-      {filterPeriod !== 'all' && (
+      {/* Resumen - Al día y Deuda impaga - Solo Desktop */}
+      {!isMobile && filterPeriod !== 'all' && (
         <Box sx={{ mt: 4, mb: 3 }}>
           <Typography variant="h5" component="h2" fontWeight="medium" sx={{ mb: 2 }}>
             Resumen
@@ -962,11 +1320,11 @@ const Pagos = () => {
                           <Chip
                             key={user.user_id}
                             label={user.user_nickname || user.user_name || 'Sin nickname'}
-                            sx={{
-                              backgroundColor: '#4caf50',
-                              color: 'white',
+                            sx={(theme) => ({
+                              backgroundColor: theme.palette.success.main,
+                              color: theme.palette.success.contrastText,
                               fontWeight: 'medium'
-                            }}
+                            })}
                             size="small"
                           />
                         ))}
@@ -1000,11 +1358,11 @@ const Pagos = () => {
                           <Chip
                             key={user.user_id}
                             label={user.user_nickname || user.user_name || 'Sin nickname'}
-                            sx={{
-                              backgroundColor: '#f44336',
-                              color: 'white',
+                            sx={(theme) => ({
+                              backgroundColor: theme.palette.error.main,
+                              color: theme.palette.error.contrastText,
                               fontWeight: 'medium'
-                            }}
+                            })}
                             size="small"
                           />
                         ))}
@@ -1029,70 +1387,133 @@ const Pagos = () => {
             Detalle Mensual
           </Typography>
           
-          <Paper elevation={2}>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Nombre Usuario</TableCell>
-                    <TableCell>Nickname</TableCell>
-                    <TableCell align="right">Deuda</TableCell>
-                    <TableCell align="right">Total Pagado</TableCell>
-                    <TableCell align="center">Estado</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {loadingSummary ? (
+          {/* Vista desktop */}
+          {!isMobile && (
+            <Paper elevation={2}>
+              <TableContainer>
+                <Table>
+                  <TableHead>
                     <TableRow>
-                      <TableCell colSpan={5} align="center">
-                        <CircularProgress />
-                      </TableCell>
+                      <TableCell>Nombre Usuario</TableCell>
+                      <TableCell>Nickname</TableCell>
+                      <TableCell align="right">Deuda</TableCell>
+                      <TableCell align="right">Total Pagado</TableCell>
+                      <TableCell align="center">Estado</TableCell>
                     </TableRow>
-                  ) : monthlySummary.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} align="center">
-                        <Typography color="text.secondary">
-                          No hay deuda registrada para este período
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    monthlySummary.map((user) => (
-                      <TableRow key={user.user_id}>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {user.user_name || 'Sin nombre'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {user.user_nickname || 'Sin nickname'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography variant="body2" fontWeight="medium">
-                            {formatCurrency(user.debt)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography variant="body2" fontWeight="medium">
-                            {formatCurrency(user.total_paid)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center">
-                          <Chip
-                            label={user.status === 'paid' ? 'Al día' : 'Deuda impaga'}
-                            color={user.status === 'paid' ? 'success' : 'error'}
-                            size="small"
-                          />
+                  </TableHead>
+                  <TableBody>
+                    {loadingSummary ? (
+                      <TableRow>
+                        <TableCell colSpan={5} align="center">
+                          <CircularProgress />
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
+                    ) : monthlySummary.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} align="center">
+                          <Typography color="text.secondary">
+                            No hay deuda registrada para este período
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      monthlySummary.map((user) => (
+                        <TableRow key={user.user_id}>
+                          <TableCell>
+                            <Typography variant="body2">
+                              {user.user_name || 'Sin nombre'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">
+                              {user.user_nickname || 'Sin nickname'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" fontWeight="medium">
+                              {formatCurrency(user.debt)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" fontWeight="medium">
+                              {formatCurrency(user.total_paid)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip
+                              label={user.status === 'paid' ? 'Al día' : 'Deuda impaga'}
+                              color={user.status === 'paid' ? 'success' : 'error'}
+                              size="small"
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
+          )}
+
+          {/* Vista mobile - solo Nickname (pill), Deuda y Total Pagado */}
+          {isMobile && (
+            <Paper elevation={2}>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Nickname</TableCell>
+                      <TableCell align="right">Deuda</TableCell>
+                      <TableCell align="right">Total Pagado</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {loadingSummary ? (
+                      <TableRow>
+                        <TableCell colSpan={3} align="center">
+                          <CircularProgress />
+                        </TableCell>
+                      </TableRow>
+                    ) : monthlySummary.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} align="center">
+                          <Typography color="text.secondary">
+                            No hay deuda registrada para este período
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      monthlySummary.map((user) => (
+                        <TableRow key={user.user_id}>
+                          <TableCell>
+                            <Chip
+                              label={user.user_nickname || user.user_name || 'Sin nickname'}
+                              sx={(theme) => ({
+                                backgroundColor: user.status === 'paid' ? theme.palette.success.main : theme.palette.error.main,
+                                color: user.status === 'paid' ? theme.palette.success.contrastText : theme.palette.error.contrastText,
+                                fontWeight: 'medium'
+                              })}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" fontWeight="medium">
+                              {formatCurrency(user.debt)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" fontWeight="medium">
+                              {formatCurrency(user.total_paid)}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
+          )}
         </Box>
       )}
 
