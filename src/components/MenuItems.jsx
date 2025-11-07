@@ -71,8 +71,8 @@ const MenuItems = ({ onItemClick }) => {
       menuItems.push({ text: 'Deuda', icon: <AccountBalanceIcon />, path: '/deuda' });
     }
 
-    // Ranking - Solo administradores
-    if (user?.roles?.includes('admin')) {
+    // Ranking - Administradores, jugadores y entrenadores
+    if (user?.roles?.includes('admin') || user?.roles?.includes('player') || user?.roles?.includes('coach')) {
       menuItems.push({ text: 'Ranking', icon: <MilitaryTechIcon />, path: '/procesar-eventos' });
     }
 

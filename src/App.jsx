@@ -275,9 +275,9 @@ function App() {
                       </RoleProtectedRoute>
                     } />
                     <Route path="/procesar-eventos" element={
-                      <AdminProtectedRoute>
+                      <RoleProtectedRoute allowedRoles={['admin', 'player', 'coach']}>
                         <ProcesarEventos />
-                      </AdminProtectedRoute>
+                      </RoleProtectedRoute>
                     } />
                   </Routes>
                 </Paper>
