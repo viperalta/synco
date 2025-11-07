@@ -476,9 +476,21 @@ const ProcesarEventos = () => {
                 {rankingData.map((stat, index) => (
                   <TableRow key={stat.usuario} hover>
                     <TableCell align="center">
-                      <Typography variant="body2" fontWeight="bold" sx={{ fontSize: '1.1rem' }}>
-                        {stat.ranking}
-                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                        <Typography variant="body2" fontWeight="bold" sx={{ fontSize: '1.1rem' }}>
+                          {stat.ranking}
+                        </Typography>
+                        {stat.ranking <= 3 && (
+                          <MilitaryTechIcon 
+                            sx={{ 
+                              fontSize: '1.2rem',
+                              color: stat.ranking === 1 ? '#FFD700' : // Dorado
+                                     stat.ranking === 2 ? '#C0C0C0' : // Plata
+                                     '#CD7F32' // Bronce
+                            }} 
+                          />
+                        )}
+                      </Box>
                     </TableCell>
                     <TableCell 
                       sx={{ 
