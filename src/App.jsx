@@ -31,6 +31,7 @@ import RegistrarPago from './pages/RegistrarPago';
 import Pagos from './pages/Pagos';
 import MisPagos from './pages/MisPagos';
 import Deuda from './pages/Deuda';
+import ProcesarEventos from './pages/ProcesarEventos';
 
 // Import components
 import UserProfileComponent from './components/UserProfile';
@@ -272,6 +273,11 @@ function App() {
                       <RoleProtectedRoute allowedRoles={['admin', 'player']}>
                         <ShareTarget />
                       </RoleProtectedRoute>
+                    } />
+                    <Route path="/procesar-eventos" element={
+                      <AdminProtectedRoute>
+                        <ProcesarEventos />
+                      </AdminProtectedRoute>
                     } />
                   </Routes>
                 </Paper>

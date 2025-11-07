@@ -17,6 +17,7 @@ import {
   Receipt as ReceiptIcon,
   AccountBalanceWallet as WalletIcon,
   AccountBalance as AccountBalanceIcon,
+  MilitaryTech as MilitaryTechIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -68,6 +69,11 @@ const MenuItems = ({ onItemClick }) => {
     // Deuda - Solo administradores
     if (user?.roles?.includes('admin')) {
       menuItems.push({ text: 'Deuda', icon: <AccountBalanceIcon />, path: '/deuda' });
+    }
+
+    // Ranking - Solo administradores
+    if (user?.roles?.includes('admin')) {
+      menuItems.push({ text: 'Ranking', icon: <MilitaryTechIcon />, path: '/procesar-eventos' });
     }
 
     console.log('📋 MenuItems generados:', menuItems.map(item => item.text));
