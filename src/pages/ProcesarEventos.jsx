@@ -654,7 +654,20 @@ const ProcesarEventos = () => {
               </TableHead>
               <TableBody>
                 {rankingData.map((stat, index) => (
-                  <TableRow key={stat.usuario} hover>
+                  <TableRow 
+                    key={stat.usuario} 
+                    hover
+                    onClick={() => {
+                      if (isMobile) {
+                        setSelectedUser(stat);
+                        setModalOpen(true);
+                      }
+                    }}
+                    sx={{
+                      cursor: isMobile ? 'pointer' : 'default',
+                      '&:hover': isMobile ? { backgroundColor: 'action.hover' } : {}
+                    }}
+                  >
                     <TableCell align="center">
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
                         <Typography variant="body2" fontWeight="bold" sx={{ fontSize: '1.1rem' }}>
@@ -674,15 +687,7 @@ const ProcesarEventos = () => {
                     </TableCell>
                     <TableCell 
                       sx={{ 
-                        fontWeight: 'medium',
-                        cursor: isMobile ? 'pointer' : 'default',
-                        '&:hover': isMobile ? { textDecoration: 'underline' } : {}
-                      }}
-                      onClick={() => {
-                        if (isMobile) {
-                          setSelectedUser(stat);
-                          setModalOpen(true);
-                        }
+                        fontWeight: 'medium'
                       }}
                     >
                       {stat.usuario}
@@ -833,15 +838,15 @@ const ProcesarEventos = () => {
             Datos desde el partido del 18 de Octubre
           </Typography>
           
-          <TableContainer component={Paper}>
-            <Table>
+          <TableContainer component={Paper} sx={{ overflowX: 'auto', width: '100%' }}>
+            <Table sx={{ minWidth: isMobile ? 300 : 650 }}>
               <TableHead>
                 <TableRow sx={{ backgroundColor: 'primary.main' }}>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: isMobile ? 80 : 'auto' }} align="center">
                     Ranking
                   </TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Usuario</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: isMobile ? 120 : 'auto' }}>Usuario</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: isMobile ? 100 : 'auto' }} align="center">
                     {isMobile ? 'Asistencias(%)' : 'Asistencias'}
                   </TableCell>
                   {!isMobile && (
@@ -867,8 +872,22 @@ const ProcesarEventos = () => {
               </TableHead>
               <TableBody>
                 {rankingPascoData.map((stat, index) => (
-                  <TableRow key={stat.usuario} hover>
-                    <TableCell align="center">
+                  <TableRow 
+                    key={stat.usuario} 
+                    hover
+                    onClick={() => {
+                      if (isMobile) {
+                        setSelectedUserPasco(stat);
+                        setModalPascoOpen(true);
+                      }
+                    }}
+                    sx={{
+                      cursor: isMobile ? 'pointer' : 'default',
+                      minWidth: isMobile ? 120 : 'auto',
+                      '&:hover': isMobile ? { backgroundColor: 'action.hover' } : {}
+                    }}
+                  >
+                    <TableCell align="center" sx={{ minWidth: isMobile ? 80 : 'auto' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
                         <Typography variant="body2" fontWeight="bold" sx={{ fontSize: '1.1rem' }}>
                           {stat.ranking}
@@ -888,19 +907,12 @@ const ProcesarEventos = () => {
                     <TableCell 
                       sx={{ 
                         fontWeight: 'medium',
-                        cursor: isMobile ? 'pointer' : 'default',
-                        '&:hover': isMobile ? { textDecoration: 'underline' } : {}
-                      }}
-                      onClick={() => {
-                        if (isMobile) {
-                          setSelectedUserPasco(stat);
-                          setModalPascoOpen(true);
-                        }
+                        minWidth: isMobile ? 120 : 'auto'
                       }}
                     >
                       {stat.usuario}
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell align="center" sx={{ minWidth: isMobile ? 100 : 'auto' }}>
                       {isMobile ? (
                         <Typography variant="body2" fontWeight="bold">
                           {stat.asistencia} ({stat.porcentajeAsistencia}%)

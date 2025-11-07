@@ -274,7 +274,7 @@ function App() {
                         <ShareTarget />
                       </RoleProtectedRoute>
                     } />
-                    <Route path="/procesar-eventos" element={
+                    <Route path="/ranking" element={
                       <RoleProtectedRoute allowedRoles={['admin', 'player', 'coach']}>
                         <ProcesarEventos />
                       </RoleProtectedRoute>

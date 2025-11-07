@@ -73,7 +73,7 @@ const MenuItems = ({ onItemClick }) => {
 
     // Ranking - Administradores, jugadores y entrenadores
     if (user?.roles?.includes('admin') || user?.roles?.includes('player') || user?.roles?.includes('coach')) {
-      menuItems.push({ text: 'Ranking', icon: <MilitaryTechIcon />, path: '/procesar-eventos' });
+      menuItems.push({ text: 'Ranking', icon: <MilitaryTechIcon />, path: '/ranking' });
     }
 
     console.log('📋 MenuItems generados:', menuItems.map(item => item.text));
