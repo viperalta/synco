@@ -45,6 +45,11 @@ const ProcesarEventos = () => {
   const [showRanking, setShowRanking] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [loadingPasco, setLoadingPasco] = useState(false);
+  const [rankingPascoData, setRankingPascoData] = useState([]);
+  const [showRankingPasco, setShowRankingPasco] = useState(false);
+  const [modalPascoOpen, setModalPascoOpen] = useState(false);
+  const [selectedUserPasco, setSelectedUserPasco] = useState(null);
   
   // ID del calendario de Google Calendar
   const calendarId = 'd7dd701e2bb45dee1e2863fddb2b15354bd4f073a1350338cb66b9ee7789f9bb@group.calendar.google.com';
@@ -54,6 +59,13 @@ const ProcesarEventos = () => {
     'Vicho', 'Cony', 'Lucas', 'Bastian', 'Buri', 'Diego', 'Catalina', 
     'Gabi', 'Javi Rivas', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano', 
     'Romy', 'Fernando', 'Andre'
+  ];
+
+  // Lista de asistentes a PASCO
+  const ASISTENTES_PASCO = [
+    'Cony', 'Vicho', 'Buri', 'Andre', 'Bastian', 'Diego', 'Catalina', 
+    'Claudio andres', 'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Lucas', 'Mariano', 
+    'Romy', 'Sofi'
   ];
 
   // Función para obtener el período actual en formato YYYYMM
@@ -143,10 +155,12 @@ const ProcesarEventos = () => {
     }
   };
 
-  // Inicializar con el período actual
+  // Inicializar con el período actual y cargar ranking Pasco
   useEffect(() => {
     const currentPeriod = getCurrentPeriod();
     setSelectedPeriod(currentPeriod);
+    // Cargar ranking de Pasco automáticamente
+    loadRankingPasco();
   }, []);
 
   // Cargar eventos cuando cambia el período seleccionado
@@ -394,6 +408,172 @@ const ProcesarEventos = () => {
     }
   };
 
+  // Cargar y procesar ranking de Campeonato Pasco
+  const loadRankingPasco = async () => {
+    setLoadingPasco(true);
+    setShowRankingPasco(false);
+
+    try {
+      // Fechas del campeonato Pasco: 18 octubre 2025 hasta 14 diciembre 2025
+      const startDate = '2025-10-18';
+      const endDate = '2025-12-14';
+      const endpoint = `/eventos/${calendarId}?start_date=${startDate}&end_date=${endDate}`;
+      
+      console.log('Cargando eventos de Pasco:', endpoint);
+      
+      const response = await authenticatedApiCall(endpoint);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Error ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('Eventos de Pasco cargados:', data);
+      
+      // Asegurarse de que data sea un array
+      const eventosArray = Array.isArray(data) 
+        ? data 
+        : (data.items || data.eventos || []);
+      
+      const ahora = new Date();
+      ahora.setHours(0, 0, 0, 0); // Normalizar a inicio del día
+      
+      // Filtrar eventos que contengan "PASCO" en el título y que ya hayan ocurrido
+      const eventosPasco = eventosArray.filter(evento => {
+        const titulo = (evento.title || evento.summary || '').toUpperCase();
+        if (!titulo.includes('PASCO')) {
+          return false;
+        }
+        
+        // Verificar que el evento ya haya ocurrido
+        let fechaInicio;
+        if (evento.start && evento.start.dateTime) {
+          fechaInicio = new Date(evento.start.dateTime);
+        } else if (evento.start && evento.start.date) {
+          fechaInicio = new Date(evento.start.date);
+        } else {
+          return false; // Si no tiene fecha, no lo incluimos
+        }
+        
+        fechaInicio.setHours(0, 0, 0, 0); // Normalizar a inicio del día
+        
+        // Solo incluir eventos del pasado (fecha de inicio anterior a hoy)
+        return fechaInicio < ahora;
+      });
+
+      if (eventosPasco.length === 0) {
+        setRankingPascoData([]);
+        setShowRankingPasco(false);
+        setLoadingPasco(false);
+        return;
+      }
+
+      console.log(`📊 Procesando ${eventosPasco.length} eventos de Pasco para Ranking...`);
+
+      // Obtener asistencias desde la descripción
+      const rankingMap = {};
+      
+      // Inicializar estadísticas para cada usuario de PASCO
+      ASISTENTES_PASCO.forEach(usuario => {
+        rankingMap[usuario] = {
+          usuario,
+          asistencia: 0,
+          noAsistencia: 0,
+          noResponde: 0,
+          total: 0
+        };
+      });
+
+      // Procesar cada evento de Pasco
+      for (const eventoPasco of eventosPasco) {
+        const description = eventoPasco.description || '';
+        const { asistentes, noAsistentes } = parsearDescripcion(description);
+
+        // Crear sets de usuarios que respondieron
+        const respondedUsers = new Set();
+        const attendingUsers = new Set();
+        const notAttendingUsers = new Set();
+
+        asistentes.forEach(nombre => {
+          respondedUsers.add(nombre);
+          attendingUsers.add(nombre);
+        });
+
+        noAsistentes.forEach(nombre => {
+          respondedUsers.add(nombre);
+          notAttendingUsers.add(nombre);
+        });
+
+        // Para cada usuario en ASISTENTES_PASCO, clasificar su respuesta
+        ASISTENTES_PASCO.forEach(usuario => {
+          rankingMap[usuario].total++;
+
+          if (attendingUsers.has(usuario)) {
+            rankingMap[usuario].asistencia++;
+          } else if (notAttendingUsers.has(usuario)) {
+            rankingMap[usuario].noAsistencia++;
+          } else {
+            // No respondió
+            rankingMap[usuario].noResponde++;
+          }
+        });
+      }
+
+      // Convertir el mapa a array y calcular porcentajes
+      const rankingArray = Object.values(rankingMap).map(stat => ({
+        ...stat,
+        porcentajeAsistencia: stat.total > 0 ? ((stat.asistencia / stat.total) * 100).toFixed(1) : '0.0',
+        porcentajeNoAsistencia: stat.total > 0 ? ((stat.noAsistencia / stat.total) * 100).toFixed(1) : '0.0',
+        porcentajeNoResponde: stat.total > 0 ? ((stat.noResponde / stat.total) * 100).toFixed(1) : '0.0'
+      }));
+
+      // Ordenar por porcentaje de asistencia (mayor a menor)
+      rankingArray.sort((a, b) => {
+        const porcentajeA = parseFloat(a.porcentajeAsistencia);
+        const porcentajeB = parseFloat(b.porcentajeAsistencia);
+        return porcentajeB - porcentajeA;
+      });
+
+      // Calcular ranking (manejar empates)
+      let ranking = 1;
+      rankingArray.forEach((stat, index) => {
+        if (index === 0) {
+          stat.ranking = 1;
+        } else {
+          const porcentajeActual = parseFloat(stat.porcentajeAsistencia);
+          const porcentajeAnterior = parseFloat(rankingArray[index - 1].porcentajeAsistencia);
+          
+          if (porcentajeActual !== porcentajeAnterior) {
+            ranking = index + 1;
+          }
+          stat.ranking = ranking;
+        }
+      });
+
+      // Ordenar primero por ranking (menor a mayor) y luego alfabéticamente por nombre
+      rankingArray.sort((a, b) => {
+        // Primero por ranking
+        if (a.ranking !== b.ranking) {
+          return a.ranking - b.ranking;
+        }
+        // Si tienen el mismo ranking, ordenar alfabéticamente
+        return a.usuario.localeCompare(b.usuario, 'es');
+      });
+
+      setRankingPascoData(rankingArray);
+      setShowRankingPasco(true);
+      console.log('✅ Ranking Pasco calculado:', rankingArray);
+
+    } catch (error) {
+      console.error('Error procesando ranking Pasco:', error);
+      setRankingPascoData([]);
+      setShowRankingPasco(false);
+    } finally {
+      setLoadingPasco(false);
+    }
+  };
+
 
   return (
     <Box>
@@ -632,6 +812,219 @@ const ProcesarEventos = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setModalOpen(false)} color="primary">
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Sección Ranking Campeonato Pasco */}
+      {loadingPasco && (
+        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', p: 4 }}>
+          <CircularProgress />
+        </Box>
+      )}
+
+      {showRankingPasco && rankingPascoData.length > 0 && (
+        <Box sx={{ mt: 6 }}>
+          <Typography variant="h5" component="h2" sx={{ mb: 1, fontWeight: 'bold' }}>
+            Ranking Campeonato Pasco
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Datos desde el partido del 18 de Octubre
+          </Typography>
+          
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ backgroundColor: 'primary.main' }}>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">
+                    Ranking
+                  </TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Usuario</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">
+                    {isMobile ? 'Asistencias(%)' : 'Asistencias'}
+                  </TableCell>
+                  {!isMobile && (
+                    <>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">
+                        % Asistencia
+                      </TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">
+                        No Asistencia
+                      </TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">
+                        % No Asistencia
+                      </TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">
+                        No Responde
+                      </TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">
+                        % No Responde
+                      </TableCell>
+                    </>
+                  )}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {rankingPascoData.map((stat, index) => (
+                  <TableRow key={stat.usuario} hover>
+                    <TableCell align="center">
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                        <Typography variant="body2" fontWeight="bold" sx={{ fontSize: '1.1rem' }}>
+                          {stat.ranking}
+                        </Typography>
+                        {stat.ranking <= 3 && (
+                          <MilitaryTechIcon 
+                            sx={{ 
+                              fontSize: '1.2rem',
+                              color: stat.ranking === 1 ? '#FFD700' : // Dorado
+                                     stat.ranking === 2 ? '#C0C0C0' : // Plata
+                                     '#CD7F32' // Bronce
+                            }} 
+                          />
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        fontWeight: 'medium',
+                        cursor: isMobile ? 'pointer' : 'default',
+                        '&:hover': isMobile ? { textDecoration: 'underline' } : {}
+                      }}
+                      onClick={() => {
+                        if (isMobile) {
+                          setSelectedUserPasco(stat);
+                          setModalPascoOpen(true);
+                        }
+                      }}
+                    >
+                      {stat.usuario}
+                    </TableCell>
+                    <TableCell align="center">
+                      {isMobile ? (
+                        <Typography variant="body2" fontWeight="bold">
+                          {stat.asistencia} ({stat.porcentajeAsistencia}%)
+                        </Typography>
+                      ) : (
+                        <Chip 
+                          label={stat.asistencia} 
+                          color="success" 
+                          size="small"
+                        />
+                      )}
+                    </TableCell>
+                    {!isMobile && (
+                      <>
+                        <TableCell align="center">
+                          <Typography variant="body2" color="success.main" fontWeight="bold">
+                            {stat.porcentajeAsistencia}%
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip 
+                            label={stat.noAsistencia} 
+                            color="error" 
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Typography variant="body2" color="error.main" fontWeight="bold">
+                            {stat.porcentajeNoAsistencia}%
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip 
+                            label={stat.noResponde} 
+                            color="warning" 
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Typography variant="body2" color="warning.main" fontWeight="bold">
+                            {stat.porcentajeNoResponde}%
+                          </Typography>
+                        </TableCell>
+                      </>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+      )}
+
+      {/* Modal para mostrar información completa de Pasco en mobile */}
+      <Dialog 
+        open={modalPascoOpen} 
+        onClose={() => setModalPascoOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          {selectedUserPasco?.usuario}
+        </DialogTitle>
+        <DialogContent>
+          {selectedUserPasco && (
+            <Box sx={{ mt: 2 }}>
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Ranking: {selectedUserPasco.ranking}
+                </Typography>
+              </Box>
+              
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" color="success.main" fontWeight="bold" gutterBottom>
+                  Asistencias
+                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Chip 
+                    label={selectedUserPasco.asistencia} 
+                    color="success" 
+                    size="small"
+                  />
+                  <Typography variant="body2" color="success.main" fontWeight="bold">
+                    {selectedUserPasco.porcentajeAsistencia}%
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" color="error.main" fontWeight="bold" gutterBottom>
+                  No Asistencia
+                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Chip 
+                    label={selectedUserPasco.noAsistencia} 
+                    color="error" 
+                    size="small"
+                  />
+                  <Typography variant="body2" color="error.main" fontWeight="bold">
+                    {selectedUserPasco.porcentajeNoAsistencia}%
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" color="warning.main" fontWeight="bold" gutterBottom>
+                  No Responde
+                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Chip 
+                    label={selectedUserPasco.noResponde} 
+                    color="warning" 
+                    size="small"
+                  />
+                  <Typography variant="body2" color="warning.main" fontWeight="bold">
+                    {selectedUserPasco.porcentajeNoResponde}%
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setModalPascoOpen(false)} color="primary">
             Cerrar
           </Button>
         </DialogActions>
