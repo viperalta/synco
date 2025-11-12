@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -16,6 +16,8 @@ import {
   CardActions,
   Chip,
   LinearProgress,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import {
   AttachFile as AttachFileIcon,
@@ -27,7 +29,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { authenticatedApiCall } from '../config/api';
 
 const RegistrarPago = () => {
-  const { authenticatedApiCall: apiCall } = useAuth();
+  const { authenticatedApiCall: apiCall, user } = useAuth();
   
   // Función para obtener el período actual por defecto
   const getCurrentPeriod = () => {
@@ -51,6 +53,56 @@ const RegistrarPago = () => {
   const [uploadStatus, setUploadStatus] = useState('idle'); // idle, uploading, success, error
   const [isDragOver, setIsDragOver] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  
+  // Estados para pago por usuario (admin)
+  const [paymentMode, setPaymentMode] = useState('personal'); // 'personal' o 'user'
+  const [users, setUsers] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  
+  // Verificar si el usuario es admin
+  const isAdmin = user?.roles?.includes('admin');
+
+  // Función para obtener usuarios (solo para admin)
+  const fetchUsers = async () => {
+    if (!isAdmin) return;
+    
+    try {
+      setLoadingUsers(true);
+      const response = await apiCall('/admin/users', {
+        method: 'GET'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar usuarios');
+      }
+      
+      const data = await response.json();
+      setUsers(data.users || []);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      setError('Error al cargar la lista de usuarios');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  // Cargar usuarios cuando se cambia a modo "user"
+  useEffect(() => {
+    if (isAdmin && paymentMode === 'user') {
+      // Solo cargar si no tenemos usuarios aún
+      if (users.length === 0) {
+        fetchUsers();
+      }
+    }
+  }, [paymentMode, isAdmin, users.length]);
+
+  // Limpiar usuario seleccionado cuando se cambia de modo
+  useEffect(() => {
+    if (paymentMode === 'personal') {
+      setSelectedUserId('');
+    }
+  }, [paymentMode]);
 
   // Generar períodos para el mes anterior, actual y siguiente
   const generatePeriods = () => {
@@ -188,6 +240,14 @@ const RegistrarPago = () => {
         notes: formData.notes || ''
       };
 
+      // Si es admin y está en modo "user", agregar user_id
+      if (isAdmin && paymentMode === 'user') {
+        if (!selectedUserId) {
+          throw new Error('Por favor selecciona un usuario');
+        }
+        paymentData.user_id = selectedUserId;
+      }
+
       console.log('Creando pago:', paymentData);
       const createResponse = await apiCall('/payments', {
         method: 'POST',
@@ -244,11 +304,14 @@ const RegistrarPago = () => {
       // Limpiar formulario
       setFormData({
         amount: '',
-        period: '',
+        period: getCurrentPeriod(),
         notes: ''
       });
       setSelectedFile(null);
       setUploadProgress(0);
+      
+      // Si está en modo "user", mantener el usuario seleccionado para facilitar múltiples pagos
+      // El admin puede cambiar el usuario si necesita registrar para otro
 
     } catch (error) {
       console.error('Error:', error);
@@ -279,6 +342,59 @@ const RegistrarPago = () => {
       <Paper elevation={2} sx={{ p: 3, mt: 2, maxWidth: 600, mx: 'auto' }}>
         <form onSubmit={handleSubmit}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Switch para admin: Pago Personal / Pagar por usuario */}
+            {isAdmin && (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={paymentMode === 'user'}
+                    onChange={(e) => setPaymentMode(e.target.checked ? 'user' : 'personal')}
+                    color="primary"
+                  />
+                }
+                label={paymentMode === 'personal' ? 'Pago Personal' : 'Pagar por usuario'}
+                sx={{ mb: 1 }}
+              />
+            )}
+
+            {/* Selector de usuario (solo para admin en modo "user") */}
+            {isAdmin && paymentMode === 'user' && (
+              <Box>
+                {loadingUsers ? (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      py: 3,
+                      gap: 2
+                    }}
+                  >
+                    <CircularProgress size={40} />
+                    <Typography variant="body2" color="text.secondary">
+                      Cargando usuarios...
+                    </Typography>
+                  </Box>
+                ) : (
+                  <FormControl fullWidth required>
+                    <InputLabel>Registrar pago a nombre de</InputLabel>
+                    <Select
+                      value={selectedUserId}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
+                      label="Registrar pago a nombre de"
+                    >
+                      {users.map((user) => (
+                        <MenuItem key={user._id} value={user._id}>
+                          {user.nickname || user.name || user.email}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
+              </Box>
+            )}
+
             {/* Subida de archivo */}
             <Card variant="outlined">
               <CardContent>
