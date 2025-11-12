@@ -78,7 +78,11 @@ const RegistrarPago = () => {
       }
       
       const data = await response.json();
-      setUsers(data.users || []);
+      // Filtrar solo usuarios con rol "player"
+      const players = (data.users || []).filter(user => 
+        user.roles && user.roles.includes('player')
+      );
+      setUsers(players);
     } catch (err) {
       console.error('Error fetching users:', err);
       setError('Error al cargar la lista de usuarios');
