@@ -584,6 +584,13 @@ const ProcesarEventos = () => {
         </Typography>
       </Box>
 
+      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Typography component="span" sx={{ fontSize: '1.25rem' }}>🏆</Typography>
+        <Typography variant="body1" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+          Los primeros lugares tendrán premio a fin de mes!
+        </Typography>
+      </Box>
+
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <FormControl fullWidth>
@@ -834,9 +841,15 @@ const ProcesarEventos = () => {
           <Typography variant="h5" component="h2" sx={{ mb: 1, fontWeight: 'bold' }}>
             Ranking Campeonato Pasco
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             Datos desde el partido del 18 de Octubre
           </Typography>
+          <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography component="span" sx={{ fontSize: '1.25rem' }}>🏆</Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+              Los primeros lugares tendrán premio al finalizar el torneo.
+            </Typography>
+          </Box>
           
           <TableContainer component={Paper} sx={{ overflowX: 'auto', width: '100%' }}>
             <Table sx={{ minWidth: isMobile ? 300 : 650 }}>
