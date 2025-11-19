@@ -43,6 +43,7 @@ import logoPasco from '../assets/logo-pasco.jpg';
 import logoOriente from '../assets/logo-oriente.png';
 import logoSante from '../assets/logo-sante.jpg';
 import logoBohemios from '../assets/logo-bohemios.jpg';
+import gatobarato from '../assets/gatobarato.jpg';
 
 const Calendar = () => {
   const { user } = useAuth();
@@ -517,7 +518,9 @@ const Calendar = () => {
     if (!eventSummary) return null;
     
     const summary = eventSummary.toUpperCase();
-    if (summary.includes('PASCO')) {
+    if (summary.includes('CHURU')) {
+      return gatobarato;
+    } else if (summary.includes('PASCO')) {
       return logoPasco;
     } else if (summary.includes('ORIENTE')) {
       return logoOriente;
