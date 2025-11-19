@@ -445,7 +445,7 @@ const Calendar = () => {
   const ASISTENTES_PASCO = [
     'Cony', 'Vicho', 'Buri', 'Andre', 'Bastian', 'Diego', 'Catalina', 
     'Claudio andres', 'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Lucas', 'Mariano', 
-    'Romy', 'Sofi'
+    'Romy', 'Sofi', 'Fernando'
   ];
 
   const ASISTENTES_ORIENTE = [
