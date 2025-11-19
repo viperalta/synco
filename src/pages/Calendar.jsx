@@ -44,6 +44,8 @@ import logoOriente from '../assets/logo-oriente.png';
 import logoSante from '../assets/logo-sante.jpg';
 import logoBohemios from '../assets/logo-bohemios.jpg';
 import gatobarato from '../assets/gatobarato.jpg';
+import lager from '../assets/lager.jpg';
+import regina from '../assets/regina.jpg';
 
 const Calendar = () => {
   const { user } = useAuth();
@@ -73,6 +75,7 @@ const Calendar = () => {
   const [nextMatches, setNextMatches] = useState([]);
   const [nextMatchesAttendance, setNextMatchesAttendance] = useState({});
   const [loadingNextMatches, setLoadingNextMatches] = useState(false);
+  const [currentChuruLogoIndex, setCurrentChuruLogoIndex] = useState(0); // 0 para lager, 1 para bohemios
 
   const monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -161,6 +164,28 @@ const Calendar = () => {
 
     fetchEventos();
   }, []);
+
+  // useEffect para alternar logos en eventos CHURU cuando se muestra el rival
+  useEffect(() => {
+    if (!selectedEvent || !isChuruEvent(selectedEvent.summary)) {
+      return;
+    }
+
+    // Solo alternar cuando se está mostrando el rival (hover o animación automática)
+    const isShowingRival = isLogoHovered || shouldRotateLogo;
+    
+    if (!isShowingRival) {
+      setCurrentChuruLogoIndex(0); // Resetear al primer logo cuando no se muestra el rival
+      return;
+    }
+
+    // Alternar entre los logos cada 1.5 segundos
+    const interval = setInterval(() => {
+      setCurrentChuruLogoIndex((prev) => (prev === 0 ? 1 : 0));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [selectedEvent, isLogoHovered, shouldRotateLogo]);
 
   const getDaysInMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -253,6 +278,8 @@ const Calendar = () => {
   const handleEventClick = async (event) => {
     setSelectedEvent(event);
     setModalOpen(true);
+    setCurrentChuruLogoIndex(0); // Resetear índice al abrir un nuevo evento
+    setIsLogoHovered(false);
     
     // Activar animación de giro si hay tanto liga como equipo
     const hasLeagueLogo = getLeagueLogo(event.summary);
@@ -383,6 +410,8 @@ const Calendar = () => {
     setAttendeeToDelete(null);
     setShouldRotateLogo(false);
     setLogoAnimationPhase('idle');
+    setCurrentChuruLogoIndex(0);
+    setIsLogoHovered(false);
   };
 
   const handleDeleteAttendee = (attendeeName) => {
@@ -528,11 +557,25 @@ const Calendar = () => {
     return null;
   };
 
+  // Función para verificar si es un evento CHURU
+  const isChuruEvent = (eventSummary) => {
+    if (!eventSummary) return false;
+    return eventSummary.toUpperCase().includes('CHURU');
+  };
+
   // Función para obtener el logo del rival según el nombre del evento
+  // Devuelve null si no hay rival, o un valor truthy si hay rival (puede ser 'CHURU_SPECIAL' o un logo)
   const getRivalLogo = (eventSummary) => {
     if (!eventSummary) return null;
     
     const summary = eventSummary.toUpperCase();
+    if (summary.includes('CHURU')) {
+      // Para CHURU, devolvemos un valor especial que indica que hay rival pero se manejará diferente
+      return 'CHURU_SPECIAL';
+    }
+    if (summary.includes('REGINA')) {
+      return regina;
+    }
     if (summary.includes('SANTÉ') || summary.includes('SANTE')) {
       return logoSante;
     }
@@ -541,6 +584,29 @@ const Calendar = () => {
     }
     // Aquí puedes agregar más rivales en el futuro
     return null;
+  };
+
+  // Función auxiliar para obtener el logo real del rival (sin el caso especial CHURU)
+  // Se usa cuando necesitamos la URL real del logo
+  const getRivalLogoUrl = (eventSummary) => {
+    if (!eventSummary) return null;
+    
+    const summary = eventSummary.toUpperCase();
+    if (summary.includes('REGINA')) {
+      return regina;
+    }
+    if (summary.includes('SANTÉ') || summary.includes('SANTE')) {
+      return logoSante;
+    }
+    if (summary.includes('BOHEMIOS')) {
+      return logoBohemios;
+    }
+    return null;
+  };
+
+  // Función para obtener los logos del rival para eventos CHURU
+  const getChuruRivalLogos = () => {
+    return [lager, logoBohemios];
   };
 
   const handleAttendEvent = async (willAttend = true) => {
@@ -1511,18 +1577,59 @@ const Calendar = () => {
                           alignItems: 'center',
                           justifyContent: 'center',
                           transform: 'rotateY(180deg)',
-                          '& img': {
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            borderRadius: '50%'
-                          }
                         }}
                       >
-                        <img 
-                          src={getRivalLogo(selectedEvent.summary)} 
-                          alt="Logo del rival"
-                        />
+                        {isChuruEvent(selectedEvent.summary) ? (
+                          // Para eventos CHURU, mostrar ambos logos alternándose
+                          getChuruRivalLogos().map((logo, index) => (
+                            <Box
+                              key={index}
+                              sx={{
+                                position: 'absolute',
+                                width: '100%',
+                                height: '100%',
+                                opacity: currentChuruLogoIndex === index ? 1 : 0,
+                                transition: 'opacity 0.5s ease-in-out',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                '& img': {
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                  borderRadius: '50%'
+                                }
+                              }}
+                            >
+                              <img 
+                                src={logo} 
+                                alt={`Logo rival ${index === 0 ? 'Lager' : 'Bohemios'}`}
+                              />
+                            </Box>
+                          ))
+                        ) : (
+                          // Para otros eventos, mostrar el logo normal
+                          <Box
+                            sx={{
+                              width: '100%',
+                              height: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              '& img': {
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                borderRadius: '50%'
+                              }
+                            }}
+                          >
+                            <img 
+                              src={getRivalLogoUrl(selectedEvent.summary)} 
+                              alt="Logo del rival"
+                            />
+                          </Box>
+                        )}
                       </Box>
                     )}
                   </Box>
