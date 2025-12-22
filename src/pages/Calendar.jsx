@@ -493,7 +493,7 @@ const Calendar = () => {
   const ENTRENO = [
     'Vicho', 'Cony', 'Lucas', 'Bastian', 'Buri', 'Diego', 'Catalina', 
     'Gabi', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano', 
-    'Romy', 'Fernando', 'Andre'
+    'Romy', 'Fernando', 'Andre', 'Ángel'
   ];
 
   // Función para obtener la lista de asistentes según el tipo de evento
