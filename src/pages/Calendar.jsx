@@ -46,6 +46,8 @@ import logoBohemios from '../assets/logo-bohemios.jpg';
 import gatobarato from '../assets/gatobarato.jpg';
 import lager from '../assets/lager.jpg';
 import regina from '../assets/regina.jpg';
+import logoSunday from '../assets/logo-sunday.png';
+import logoMishigang from '../assets/logo-mishigang.jpg';
 
 const Calendar = () => {
   const { user } = useAuth();
@@ -582,6 +584,12 @@ const Calendar = () => {
     if (summary.includes('BOHEMIOS')) {
       return logoBohemios;
     }
+    if (summary.includes('SUNDAY')) {
+      return logoSunday;
+    }
+    if (summary.includes('MICHIGANG')) {
+      return logoMishigang;
+    }
     // Aquí puedes agregar más rivales en el futuro
     return null;
   };
@@ -600,6 +608,12 @@ const Calendar = () => {
     }
     if (summary.includes('BOHEMIOS')) {
       return logoBohemios;
+    }
+    if (summary.includes('SUNDAY')) {
+      return logoSunday;
+    }
+    if (summary.includes('MICHIGANG')) {
+      return logoMishigang;
     }
     return null;
   };
