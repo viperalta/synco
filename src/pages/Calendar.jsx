@@ -482,8 +482,8 @@ const Calendar = () => {
 
   const ASISTENTES_ORIENTE = [
     'Vicho', 'Cony', 'Lucas', 'Bastian', 'Buri', 'Carlos', 'Diego', 'Catalina', 
-    'Gabi', 'Javi Rivas', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano', 
-    'Romy'
+    'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Mariano', 
+    'Romy', 'Andre', 'Ángel', 'Fernando'
   ];
 
   const LISTA_DEFAULT = [
@@ -587,7 +587,7 @@ const Calendar = () => {
     if (summary.includes('SUNDAY')) {
       return logoSunday;
     }
-    if (summary.includes('MICHIGANG')) {
+    if (summary.includes('MISHIGANG')) {
       return logoMishigang;
     }
     // Aquí puedes agregar más rivales en el futuro
@@ -612,7 +612,7 @@ const Calendar = () => {
     if (summary.includes('SUNDAY')) {
       return logoSunday;
     }
-    if (summary.includes('MICHIGANG')) {
+    if (summary.includes('MISHIGANG')) {
       return logoMishigang;
     }
     return null;
