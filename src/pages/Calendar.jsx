@@ -48,6 +48,7 @@ import lager from '../assets/lager.jpg';
 import regina from '../assets/regina.jpg';
 import logoSunday from '../assets/logo-sunday.png';
 import logoMishigang from '../assets/logo-mishigang.jpg';
+import logoWakan from '../assets/logo-wakan.png';
 
 const Calendar = () => {
   const { user } = useAuth();
@@ -590,6 +591,9 @@ const Calendar = () => {
     if (summary.includes('MISHIGANG')) {
       return logoMishigang;
     }
+    if (summary.includes('WAKAN')) {
+      return logoWakan;
+    }
     // Aquí puedes agregar más rivales en el futuro
     return null;
   };
@@ -614,6 +618,9 @@ const Calendar = () => {
     }
     if (summary.includes('MISHIGANG')) {
       return logoMishigang;
+    }
+    if (summary.includes('WAKAN')) {
+      return logoWakan;
     }
     return null;
   };
