@@ -18,6 +18,7 @@ import {
   AccountBalanceWallet as WalletIcon,
   AccountBalance as AccountBalanceIcon,
   MilitaryTech as MilitaryTechIcon,
+  Assignment as AssignmentIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -40,6 +41,11 @@ const MenuItems = ({ onItemClick }) => {
     
     // Contacto - Todos los usuarios pueden verlo
     menuItems.push({ text: 'Contacto', icon: <ContactIcon />, path: '/contacto' });
+
+    // Encuesta - Solo jugadores
+    if (user?.roles?.includes('player')) {
+      menuItems.push({ text: 'Encuesta', icon: <AssignmentIcon />, path: '/encuesta' });
+    }
     
     // Usuarios - Solo administradores
     if (user?.roles?.includes('admin')) {
