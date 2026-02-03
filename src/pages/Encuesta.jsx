@@ -9,6 +9,7 @@ const Encuesta = () => {
       <Typography variant="h5" component="h1" gutterBottom color="primary" sx={{ mb: 2 }}>
         Encuesta de Satisfacción 2026
       </Typography>
+      {/* iframe comentado temporalmente
       <Box
         component="iframe"
         src={GOOGLE_FORM_URL}
@@ -21,6 +22,7 @@ const Encuesta = () => {
         }}
         title="Encuesta de Satisfacción 2026"
       />
+      */}
     </Box>
   );
 };
