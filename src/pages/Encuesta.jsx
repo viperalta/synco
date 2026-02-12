@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 
-const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSdY1S0wWb7-rz-GjdsrqCpnKXXuI5tu3tP92s9HpdV-igIhww/viewform?embedded=true';
+const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSdFr2qmihpfwLxS4p7agzPPXCxsBTJjus-SajuVNeh9SvMDJA/viewform?embedded=true';
 
 const Encuesta = () => {
   return (
