@@ -490,7 +490,7 @@ const Calendar = () => {
   const LISTA_DEFAULT = [
     'Vicho', 'Cony', 'Lucas', 'Bastian', 'Buri', 'Carlos', 'Diego', 'Catalina', 
     'Gabi', 'Javi Rivas', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano', 
-    'Romy', 'Claudio andres', 'Sofi', 'Fernando', 'Andre', 'Conco'
+    'Romy', 'Claudio andres', 'Sofi', 'Fernando', 'Andre', 'Conco', 'Dafne'
   ];
 
   const ENTRENO = [
