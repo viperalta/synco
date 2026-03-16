@@ -1854,151 +1854,156 @@ const Calendar = () => {
                   </Box>
                 )}
 
-                {/* Attendees Section */}
-                <Box sx={{ p: 3, backgroundColor: 'success.light', borderRadius: 1, mb: 3 }}>
-                  <Typography variant="h6" gutterBottom sx={{ 
-                    color: 'success.contrastText', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 1,
-                    fontSize: { xs: '1rem', sm: '1.25rem' }
-                  }}>
-                    👥 Asistentes Confirmados ({totalAttendees})
-                  </Typography>
-                  
-                  {loadingAttendees ? (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
-                      <CircularProgress size={20} color="inherit" />
-                      <Typography variant="body2" sx={{ color: 'success.contrastText' }}>
-                        Cargando asistentes...
+                {/* Attendees / Non Attendees Sections (solo para eventos no informativos) */}
+                {!isInformationalEvent(selectedEvent.summary) && (
+                  <>
+                    {/* Attendees Section */}
+                    <Box sx={{ p: 3, backgroundColor: 'success.light', borderRadius: 1, mb: 3 }}>
+                      <Typography variant="h6" gutterBottom sx={{ 
+                        color: 'success.contrastText', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1,
+                        fontSize: { xs: '1rem', sm: '1.25rem' }
+                      }}>
+                        👥 Asistentes Confirmados ({totalAttendees})
                       </Typography>
-                    </Box>
-                  ) : attendees.length > 0 ? (
-                    <Box sx={{ mt: 2 }}>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                        {attendees.map((attendee, index) => (
-                          <Box key={index} sx={{ position: 'relative', display: 'inline-block' }}>
-                            <Chip
-                              label={attendee}
-                              size="small"
-                              sx={{
-                                backgroundColor: 'success.main',
-                                color: 'success.contrastText',
-                                fontWeight: 'bold',
-                                pr: shouldShowDeleteButton(attendee) ? 3 : 0.5 // Espacio para el icono solo si se muestra
-                              }}
-                            />
-                            {shouldShowDeleteButton(attendee) && (
-                              <IconButton
-                                size="small"
-                                onClick={() => handleDeleteAttendee(attendee)}
-                                disabled={deletingAttendee === attendee}
-                                sx={{
-                                  position: 'absolute',
-                                  top: -8,
-                                  right: -8,
-                                  backgroundColor: 'error.main',
-                                  color: 'error.contrastText',
-                                  width: 20,
-                                  height: 20,
-                                  '&:hover': {
-                                    backgroundColor: 'error.dark',
-                                  },
-                                  '&:disabled': {
-                                    backgroundColor: 'error.light',
-                                  }
-                                }}
-                              >
-                                {deletingAttendee === attendee ? (
-                                  <CircularProgress size={12} color="inherit" />
-                                ) : (
-                                  <CloseIcon sx={{ fontSize: 12 }} />
+                      
+                      {loadingAttendees ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
+                          <CircularProgress size={20} color="inherit" />
+                          <Typography variant="body2" sx={{ color: 'success.contrastText' }}>
+                            Cargando asistentes...
+                          </Typography>
+                        </Box>
+                      ) : attendees.length > 0 ? (
+                        <Box sx={{ mt: 2 }}>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                            {attendees.map((attendee, index) => (
+                              <Box key={index} sx={{ position: 'relative', display: 'inline-block' }}>
+                                <Chip
+                                  label={attendee}
+                                  size="small"
+                                  sx={{
+                                    backgroundColor: 'success.main',
+                                    color: 'success.contrastText',
+                                    fontWeight: 'bold',
+                                    pr: shouldShowDeleteButton(attendee) ? 3 : 0.5 // Espacio para el icono solo si se muestra
+                                  }}
+                                />
+                                {shouldShowDeleteButton(attendee) && (
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleDeleteAttendee(attendee)}
+                                    disabled={deletingAttendee === attendee}
+                                    sx={{
+                                      position: 'absolute',
+                                      top: -8,
+                                      right: -8,
+                                      backgroundColor: 'error.main',
+                                      color: 'error.contrastText',
+                                      width: 20,
+                                      height: 20,
+                                      '&:hover': {
+                                        backgroundColor: 'error.dark',
+                                      },
+                                      '&:disabled': {
+                                        backgroundColor: 'error.light',
+                                      }
+                                    }}
+                                  >
+                                    {deletingAttendee === attendee ? (
+                                      <CircularProgress size={12} color="inherit" />
+                                    ) : (
+                                      <CloseIcon sx={{ fontSize: 12 }} />
+                                    )}
+                                  </IconButton>
                                 )}
-                              </IconButton>
-                            )}
+                              </Box>
+                            ))}
                           </Box>
-                        ))}
-                      </Box>
+                        </Box>
+                      ) : (
+                        <Typography variant="body2" sx={{ color: 'success.contrastText', mt: 2, fontStyle: 'italic' }}>
+                          Aún no hay asistentes confirmados para este evento.
+                        </Typography>
+                      )}
                     </Box>
-                  ) : (
-                    <Typography variant="body2" sx={{ color: 'success.contrastText', mt: 2, fontStyle: 'italic' }}>
-                      Aún no hay asistentes confirmados para este evento.
-                    </Typography>
-                  )}
-                </Box>
 
-                {/* Non Attendees Section */}
-                <Box sx={{ p: 3, backgroundColor: 'warning.light', borderRadius: 1, mb: 1 }}>
-                  <Typography variant="h6" gutterBottom sx={{ 
-                    color: 'warning.contrastText', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 1,
-                    fontSize: { xs: '1rem', sm: '1.25rem' }
-                  }}>
-                    ❌ Ausentes ({totalNonAttendees})
-                  </Typography>
-                  
-                  {loadingAttendees ? (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
-                      <CircularProgress size={20} color="inherit" />
-                      <Typography variant="body2" sx={{ color: 'warning.contrastText' }}>
-                        Cargando ausentes...
+                    {/* Non Attendees Section */}
+                    <Box sx={{ p: 3, backgroundColor: 'warning.light', borderRadius: 1, mb: 1 }}>
+                      <Typography variant="h6" gutterBottom sx={{ 
+                        color: 'warning.contrastText', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1,
+                        fontSize: { xs: '1rem', sm: '1.25rem' }
+                      }}>
+                        ❌ Ausentes ({totalNonAttendees})
                       </Typography>
-                    </Box>
-                  ) : nonAttendees.length > 0 ? (
-                    <Box sx={{ mt: 2 }}>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                        {nonAttendees.map((name, index) => (
-                          <Box key={index} sx={{ position: 'relative', display: 'inline-block' }}>
-                            <Chip
-                              label={name}
-                              size="small"
-                              sx={{
-                                backgroundColor: 'warning.main',
-                                color: 'warning.contrastText',
-                                fontWeight: 'bold',
-                                pr: shouldShowDeleteButton(name) ? 3 : 0.5 // Espacio para el icono solo si se muestra
-                              }}
-                            />
-                            {shouldShowDeleteButton(name) && (
-                              <IconButton
-                                size="small"
-                                onClick={() => handleDeleteAttendee(name)}
-                                disabled={deletingAttendee === name}
-                                sx={{
-                                  position: 'absolute',
-                                  top: -8,
-                                  right: -8,
-                                  backgroundColor: 'error.main',
-                                  color: 'error.contrastText',
-                                  width: 20,
-                                  height: 20,
-                                  '&:hover': {
-                                    backgroundColor: 'error.dark',
-                                  },
-                                  '&:disabled': {
-                                    backgroundColor: 'error.light',
-                                  }
-                                }}
-                              >
-                                {deletingAttendee === name ? (
-                                  <CircularProgress size={12} color="inherit" />
-                                ) : (
-                                  <CloseIcon sx={{ fontSize: 12 }} />
+                      
+                      {loadingAttendees ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
+                          <CircularProgress size={20} color="inherit" />
+                          <Typography variant="body2" sx={{ color: 'warning.contrastText' }}>
+                            Cargando ausentes...
+                          </Typography>
+                        </Box>
+                      ) : nonAttendees.length > 0 ? (
+                        <Box sx={{ mt: 2 }}>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                            {nonAttendees.map((name, index) => (
+                              <Box key={index} sx={{ position: 'relative', display: 'inline-block' }}>
+                                <Chip
+                                  label={name}
+                                  size="small"
+                                  sx={{
+                                    backgroundColor: 'warning.main',
+                                    color: 'warning.contrastText',
+                                    fontWeight: 'bold',
+                                    pr: shouldShowDeleteButton(name) ? 3 : 0.5 // Espacio para el icono solo si se muestra
+                                  }}
+                                />
+                                {shouldShowDeleteButton(name) && (
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleDeleteAttendee(name)}
+                                    disabled={deletingAttendee === name}
+                                    sx={{
+                                      position: 'absolute',
+                                      top: -8,
+                                      right: -8,
+                                      backgroundColor: 'error.main',
+                                      color: 'error.contrastText',
+                                      width: 20,
+                                      height: 20,
+                                      '&:hover': {
+                                        backgroundColor: 'error.dark',
+                                      },
+                                      '&:disabled': {
+                                        backgroundColor: 'error.light',
+                                      }
+                                    }}
+                                  >
+                                    {deletingAttendee === name ? (
+                                      <CircularProgress size={12} color="inherit" />
+                                    ) : (
+                                      <CloseIcon sx={{ fontSize: 12 }} />
+                                    )}
+                                  </IconButton>
                                 )}
-                              </IconButton>
-                            )}
+                              </Box>
+                            ))}
                           </Box>
-                        ))}
-                      </Box>
+                        </Box>
+                      ) : (
+                        <Typography variant="body2" sx={{ color: 'warning.contrastText', mt: 2, fontStyle: 'italic' }}>
+                          No hay ausentes registrados para este evento.
+                        </Typography>
+                      )}
                     </Box>
-                  ) : (
-                    <Typography variant="body2" sx={{ color: 'warning.contrastText', mt: 2, fontStyle: 'italic' }}>
-                      No hay ausentes registrados para este evento.
-                    </Typography>
-                  )}
-                </Box>
+                  </>
+                )}
 
               </Box>
 
