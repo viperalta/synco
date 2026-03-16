@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom';
 import DescriptionIcon from '@mui/icons-material/Description';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import AssignmentIcon from '@mui/icons-material/Assignment';
 import pasesImage from '../assets/pases.png';
 import conyImage from '../assets/cony mvp.png';
 import jorgeImage from '../assets/jorge.png';
@@ -35,28 +34,6 @@ const Home = () => {
         Bienvenido al Portal de Pases Falsos
       </Typography>
 
-      {/* Recuadro Encuesta Pases 2025 - Solo visible para jugadores */}
-      {user?.roles?.includes('player') && (
-        <Paper elevation={2} sx={{ mt: 4, p: 3, maxWidth: 600, mx: 'auto' }}>
-          <Typography variant="h6" component="h2" gutterBottom color="primary" fontWeight="bold">
-          Encuesta de Satisfacción 2026
-          </Typography>
-          <Typography variant="body1" paragraph>
-            Por favor completa esta encuesta que nos ayudará a que nuestro equipo sea cada dia mejor!
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            component={Link}
-            to="/encuesta"
-            startIcon={<AssignmentIcon />}
-            sx={{ py: 1.5 }}
-          >
-            RESPONDER ENCUESTA
-          </Button>
-        </Paper>
-      )}
-      
       <Paper elevation={2} sx={{ mt: 4, p: 3, maxWidth: 600, mx: 'auto' }}>
         <Typography variant="body1" paragraph>
           Esta es la página oficial del equipo de voleyball Pases Falsos.
