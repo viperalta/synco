@@ -88,6 +88,24 @@ const Calendar = () => {
   // Start weeks on Monday
   const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
+  // Helper: parse "YYYY-MM-DD" as fecha local (sin desfase de timezone)
+  const parseLocalDate = (dateStr) => {
+    if (!dateStr) return null;
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  };
+
+  const formatLocalDateEs = (dateStr) => {
+    const date = parseLocalDate(dateStr);
+    if (!date) return 'Fecha no disponible';
+    return date.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   // Fetch eventos from API when component mounts
   useEffect(() => {
     const fetchEventos = async () => {
@@ -138,7 +156,7 @@ const Calendar = () => {
           if (event.start && event.start.dateTime) {
             eventDate = new Date(event.start.dateTime);
           } else if (event.start && event.start.date) {
-            eventDate = new Date(event.start.date);
+            eventDate = parseLocalDate(event.start.date);
           } else {
             return false;
           }
@@ -225,23 +243,25 @@ const Calendar = () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     
-    return items.filter(event => {
-      let eventDate;
-      
-      if (event.start && event.start.dateTime) {
-        eventDate = new Date(event.start.dateTime);
-      } else if (event.start && event.start.date) {
-        eventDate = new Date(event.start.date);
-      } else {
-        return false;
-      }
-      
-      return eventDate.getFullYear() === year && eventDate.getMonth() === month;
-    }).sort((a, b) => {
-      const dateA = a.start.dateTime ? new Date(a.start.dateTime) : new Date(a.start.date);
-      const dateB = b.start.dateTime ? new Date(b.start.dateTime) : new Date(b.start.date);
-      return dateA - dateB;
-    });
+    return items
+      .filter(event => {
+        let eventDate;
+        
+        if (event.start && event.start.dateTime) {
+          eventDate = new Date(event.start.dateTime);
+        } else if (event.start && event.start.date) {
+          eventDate = parseLocalDate(event.start.date);
+        } else {
+          return false;
+        }
+        
+        return eventDate.getFullYear() === year && eventDate.getMonth() === month;
+      })
+      .sort((a, b) => {
+        const dateA = a.start.dateTime ? new Date(a.start.dateTime) : parseLocalDate(a.start.date);
+        const dateB = b.start.dateTime ? new Date(b.start.dateTime) : parseLocalDate(b.start.date);
+        return dateA - dateB;
+      });
   };
 
   // Función para obtener los próximos 3 partidos de PASCO u ORIENTE
@@ -260,15 +280,15 @@ const Calendar = () => {
       if (event.start && event.start.dateTime) {
         eventDate = new Date(event.start.dateTime);
       } else if (event.start && event.start.date) {
-        eventDate = new Date(event.start.date);
+        eventDate = parseLocalDate(event.start.date);
       } else {
         return false;
       }
       
       return eventDate >= now;
     }).sort((a, b) => {
-      const dateA = a.start.dateTime ? new Date(a.start.dateTime) : new Date(a.start.date);
-      const dateB = b.start.dateTime ? new Date(b.start.dateTime) : new Date(b.start.date);
+      const dateA = a.start.dateTime ? new Date(a.start.dateTime) : parseLocalDate(a.start.date);
+      const dateB = b.start.dateTime ? new Date(b.start.dateTime) : parseLocalDate(b.start.date);
       return dateA - dateB;
     }).slice(0, 3); // Solo los primeros 3
   };
@@ -628,6 +648,12 @@ const Calendar = () => {
   // Función para obtener los logos del rival para eventos CHURU
   const getChuruRivalLogos = () => {
     return [lager, logoBohemios];
+  };
+
+  // Eventos meramente informativos: no muestran controles de asistencia
+  const isInformationalEvent = (eventSummary) => {
+    if (!eventSummary) return false;
+    return eventSummary.trim().startsWith('🎊🏐');
   };
 
   const handleAttendEvent = async (willAttend = true) => {
@@ -1093,12 +1119,7 @@ const Calendar = () => {
                         </>
                       ) : event.start && event.start.date ? (
                         <>
-                          📅 {new Date(event.start.date).toLocaleDateString('es-ES', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
+                          📅 {formatLocalDateEs(event.start.date)}
                           <br />
                           🕐 Horario específico aún no definido
                         </>
@@ -1317,12 +1338,7 @@ const Calendar = () => {
                                 })}
                               </>
                             ) : match.start && match.start.date ? (
-                              new Date(match.start.date).toLocaleDateString('es-ES', {
-                                weekday: 'long',
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              })
+                              formatLocalDateEs(match.start.date)
                             ) : (
                               'Fecha no disponible'
                             )}
@@ -1722,12 +1738,7 @@ const Calendar = () => {
                       📅 Todo el Día
                     </Typography>
                     <Typography variant="body1" sx={{ ml: 2 }}>
-                      {new Date(selectedEvent.start.date).toLocaleDateString('es-ES', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
+                      {formatLocalDateEs(selectedEvent.start.date)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
                       🕐 Horario específico aún no definido
@@ -1752,94 +1763,96 @@ const Calendar = () => {
                   </Box>
                 )}
 
-                {/* Attendance Section */}
-                <Box sx={{ p: 3, backgroundColor: 'grey.50', borderRadius: 1, mb: 3 }}>
-                  <Typography variant="h6" gutterBottom sx={{ 
-                    color: 'text.primary', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 1,
-                    fontSize: { xs: '1rem', sm: '1.25rem' }
-                  }}>
-                    🎯 ¿Asistirás a este evento?
-                  </Typography>
-                  <Box sx={{ 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    gap: 2, 
-                    alignItems: 'stretch', 
-                    mt: 2,
-                    width: '100%'
-                  }}>
-                    {/* Primera fila: Selector */}
-                    <Box sx={{ width: '100%' }}>
-                      <Autocomplete
-                        options={getAsistentesList(selectedEvent?.summary)}
-                        value={userName}
-                        onChange={(event, newValue) => {
-                          setUserName(newValue || '');
-                        }}
-                        onInputChange={(event, newInputValue) => {
-                          setUserName(newInputValue);
-                        }}
-                        freeSolo
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Tu nombre"
-                            variant="outlined"
-                            size="small"
-                            sx={{ 
-                              width: '100%'
-                            }}
-                            placeholder="Selecciona o escribe tu nombre"
-                          />
-                        )}
-                      />
-                    </Box>
-                    
-                    {/* Segunda fila: Botones */}
+                {/* Attendance Section (solo para eventos no informativos) */}
+                {!isInformationalEvent(selectedEvent.summary) && (
+                  <Box sx={{ p: 3, backgroundColor: 'grey.50', borderRadius: 1, mb: 3 }}>
+                    <Typography variant="h6" gutterBottom sx={{ 
+                      color: 'text.primary', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 1,
+                      fontSize: { xs: '1rem', sm: '1.25rem' }
+                    }}>
+                      🎯 ¿Asistirás a este evento?
+                    </Typography>
                     <Box sx={{ 
                       display: 'flex', 
+                      flexDirection: 'column',
                       gap: 2, 
-                      width: '100%',
-                      flexDirection: { xs: 'column', sm: 'row' }
+                      alignItems: 'stretch', 
+                      mt: 2,
+                      width: '100%'
                     }}>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={() => handleAttendEvent(true)}
-                        disabled={attending || !userName.trim() || !isValidName(userName)}
-                        startIcon={attending ? null : <CheckCircleIcon />}
-                        sx={{ 
-                          fontWeight: 'bold',
-                          flex: 1,
-                          height: '40px'
-                        }}
-                      >
-                        {attending ? (
-                          <CircularProgress size={20} color="inherit" />
-                        ) : (
-                          'ASISTIRÉ'
-                        )}
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        color="inherit"
-                        onClick={() => handleAttendEvent(false)}
-                        disabled={attending || !userName.trim() || !isValidName(userName)}
-                        startIcon={<CancelIcon />}
-                        sx={{ 
-                          fontWeight: 'bold',
-                          flex: 1,
-                          height: '40px'
-                        }}
-                      >
-                        NO ASISTIRÉ
-                      </Button>
+                      {/* Primera fila: Selector */}
+                      <Box sx={{ width: '100%' }}>
+                        <Autocomplete
+                          options={getAsistentesList(selectedEvent?.summary)}
+                          value={userName}
+                          onChange={(event, newValue) => {
+                            setUserName(newValue || '');
+                          }}
+                          onInputChange={(event, newInputValue) => {
+                            setUserName(newInputValue);
+                          }}
+                          freeSolo
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Tu nombre"
+                              variant="outlined"
+                              size="small"
+                              sx={{ 
+                                width: '100%'
+                              }}
+                              placeholder="Selecciona o escribe tu nombre"
+                            />
+                          )}
+                        />
+                      </Box>
+                      
+                      {/* Segunda fila: Botones */}
+                      <Box sx={{ 
+                        display: 'flex', 
+                        gap: 2, 
+                        width: '100%',
+                        flexDirection: { xs: 'column', sm: 'row' }
+                      }}>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          onClick={() => handleAttendEvent(true)}
+                          disabled={attending || !userName.trim() || !isValidName(userName)}
+                          startIcon={attending ? null : <CheckCircleIcon />}
+                          sx={{ 
+                            fontWeight: 'bold',
+                            flex: 1,
+                            height: '40px'
+                          }}
+                        >
+                          {attending ? (
+                            <CircularProgress size={20} color="inherit" />
+                          ) : (
+                            'ASISTIRÉ'
+                          )}
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          color="inherit"
+                          onClick={() => handleAttendEvent(false)}
+                          disabled={attending || !userName.trim() || !isValidName(userName)}
+                          startIcon={<CancelIcon />}
+                          sx={{ 
+                            fontWeight: 'bold',
+                            flex: 1,
+                            height: '40px'
+                          }}
+                        >
+                          NO ASISTIRÉ
+                        </Button>
+                      </Box>
                     </Box>
                   </Box>
-                </Box>
+                )}
 
                 {/* Attendees Section */}
                 <Box sx={{ p: 3, backgroundColor: 'success.light', borderRadius: 1, mb: 3 }}>
