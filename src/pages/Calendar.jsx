@@ -498,13 +498,13 @@ const Calendar = () => {
   const ASISTENTES_PASCO = [
     'Cony', 'Vicho', 'Buri', 'Andre', 'Bastian', 'Diego', 'Catalina', 
     'Claudio andres', 'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Lucas', 'Mariano', 
-    'Romy', 'Sofi', 'Fernando'
+    'Romy', 'Sofi', 'Fernando', 'Dafne'
   ];
 
   const ASISTENTES_ORIENTE = [
     'Vicho', 'Cony', 'Lucas', 'Bastian', 'Buri', 'Carlos', 'Diego', 'Catalina', 
     'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Mariano', 
-    'Romy', 'Andre', 'Ángel', 'Fernando'
+    'Romy', 'Andre', 'Ángel', 'Fernando', 'Dafne'
   ];
 
   const LISTA_DEFAULT = [
