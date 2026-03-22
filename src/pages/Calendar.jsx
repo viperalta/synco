@@ -29,7 +29,7 @@ import {
   InputLabel,
   Autocomplete,
 } from '@mui/material';
-import { buildApiUrl, apiCall, API_ENDPOINTS } from '../config/api';
+import { buildApiUrl, apiCall, API_ENDPOINTS, PASES_GOOGLE_CALENDAR_ID } from '../config/api';
 import { useAuth } from '../contexts/AuthContext';
 import {
   ChevronLeft as ChevronLeftIcon,
@@ -114,11 +114,9 @@ const Calendar = () => {
         setError(null);
         
         // Usar la configuración centralizada de API
-        const calendarId = 'd7dd701e2bb45dee1e2863fddb2b15354bd4f073a1350338cb66b9ee7789f9bb@group.calendar.google.com';
+        console.log(`🔗 Llamando a la API: ${API_ENDPOINTS.EVENTOS(PASES_GOOGLE_CALENDAR_ID)}`);
         
-        console.log(`🔗 Llamando a la API: ${API_ENDPOINTS.EVENTOS(calendarId)}`);
-        
-        const response = await apiCall(API_ENDPOINTS.EVENTOS(calendarId));
+        const response = await apiCall(API_ENDPOINTS.EVENTOS(PASES_GOOGLE_CALENDAR_ID));
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

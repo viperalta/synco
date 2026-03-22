@@ -1,14 +1,32 @@
-import React from 'react';
-import { Typography, Box, Paper, Button, Stack, Card, CardMedia } from '@mui/material';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Typography, Box, Paper, Button, Stack, Card, CardMedia, CircularProgress, Alert } from '@mui/material';
 import { keyframes } from '@mui/system';
 import { Link } from 'react-router-dom';
 import DescriptionIcon from '@mui/icons-material/Description';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import pasesImage from '../assets/pases.png';
 import conyImage from '../assets/cony mvp.png';
 import jorgeImage from '../assets/jorge.png';
 import { useAuth } from '../contexts/AuthContext';
+import EventDetailView, { isInformationalEvent, parseLocalDate } from '../components/EventDetailView';
+import { apiCall, API_ENDPOINTS, PASES_GOOGLE_CALENDAR_ID } from '../config/api';
+
+const pickNextNonInformationalEvent = (events) => {
+  const now = Date.now();
+  const withTime = (events || [])
+    .filter((e) => e?.summary && !isInformationalEvent(e.summary))
+    .map((e) => {
+      let t = NaN;
+      if (e.start?.dateTime) t = new Date(e.start.dateTime).getTime();
+      else if (e.start?.date) t = parseLocalDate(e.start.date)?.getTime();
+      return { e, t };
+    })
+    .filter(({ t }) => !Number.isNaN(t) && t >= now)
+    .sort((a, b) => a.t - b.t);
+  return withTime[0]?.e ?? null;
+};
 
 const floatAnimation = keyframes`
   0%, 100% {
@@ -21,7 +39,36 @@ const floatAnimation = keyframes`
 
 const Home = () => {
   const { user } = useAuth();
-  
+  const [eventosLoading, setEventosLoading] = useState(true);
+  const [eventosError, setEventosError] = useState(null);
+  const [eventosItems, setEventosItems] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        setEventosLoading(true);
+        setEventosError(null);
+        const response = await apiCall(API_ENDPOINTS.EVENTOS(PASES_GOOGLE_CALENDAR_ID));
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        const events = data.items || data;
+        if (!cancelled) setEventosItems(Array.isArray(events) ? events : []);
+      } catch (err) {
+        console.error('Error cargando eventos en Home:', err);
+        if (!cancelled) setEventosError(err.message || 'No se pudieron cargar los eventos');
+      } finally {
+        if (!cancelled) setEventosLoading(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const nextEvent = useMemo(() => pickNextNonInformationalEvent(eventosItems), [eventosItems]);
+
   // Verificar si el usuario tiene rol player o admin
   const hasAccess = user?.roles?.includes('player') || user?.roles?.includes('admin');
   
@@ -79,6 +126,53 @@ const Home = () => {
           </Stack>
         )}
       </Paper>
+
+      {/* Próximo evento (misma API que Calendario) */}
+      <Box sx={{ mt: 4, maxWidth: 560, mx: 'auto', px: 2, textAlign: 'left' }}>
+        <Typography
+          variant="h4"
+          component="h2"
+          gutterBottom
+          color="primary"
+          sx={{ mb: 2, fontWeight: 'bold', textAlign: 'center' }}
+        >
+          Próximo evento
+        </Typography>
+        {eventosLoading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, py: 4 }}>
+            <CircularProgress size={32} />
+            <Typography color="text.secondary">Cargando eventos…</Typography>
+          </Box>
+        )}
+        {!eventosLoading && eventosError && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {eventosError}
+          </Alert>
+        )}
+        {!eventosLoading && !eventosError && !nextEvent && (
+          <Paper elevation={1} sx={{ p: 3, textAlign: 'center' }}>
+            <Typography color="text.secondary">
+              No hay eventos próximos con confirmación de asistencia, o solo hay eventos informativos por delante.
+            </Typography>
+          </Paper>
+        )}
+        {!eventosLoading && !eventosError && nextEvent && (
+          <>
+            <EventDetailView event={nextEvent} layout="embedded" />
+            <Box sx={{ mt: 2, textAlign: 'center' }}>
+              <Button
+                component={Link}
+                to="/calendario"
+                variant="outlined"
+                color="primary"
+                startIcon={<CalendarMonthIcon />}
+              >
+                Ver calendario completo
+              </Button>
+            </Box>
+          </>
+        )}
+      </Box>
       
       {/* Sección Premios Pases Falsos 2025 */}
       <Box sx={{ mt: 6, maxWidth: 800, mx: 'auto', px: 2 }}>

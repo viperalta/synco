@@ -77,6 +77,10 @@ export const getCurrentApiBaseUrl = () => {
   return API_BASE_URL || API_DOMAINS.FALLBACK
 }
 
+// Calendario de equipo (Google Calendar) usado en Calendar y Home
+export const PASES_GOOGLE_CALENDAR_ID =
+  'd7dd701e2bb45dee1e2863fddb2b15354bd4f073a1350338cb66b9ee7789f9bb@group.calendar.google.com'
+
 // Endpoints específicos
 export const API_ENDPOINTS = {
   EVENTOS: (calendarId) => `/eventos/${calendarId}`,
