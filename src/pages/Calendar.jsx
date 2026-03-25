@@ -496,19 +496,19 @@ const Calendar = () => {
   const ASISTENTES_PASCO = [
     'Cony', 'Vicho', 'Buri', 'Andre', 'Bastian', 'Diego', 'Catalina', 
     'Claudio andres', 'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Lucas', 'Mariano', 
-    'Romy', 'Sofi', 'Fernando', 'Dafne'
+    'Romy', 'Fernando', 'Dafne'
   ];
 
   const ASISTENTES_ORIENTE = [
-    'Vicho', 'Cony', 'Lucas', 'Bastian', 'Buri', 'Carlos', 'Diego', 'Catalina', 
+    'Vicho', 'Cony', 'Lucas', 'Bastian', 'Buri', 'Carlos', 'Diego',
     'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Mariano', 
-    'Romy', 'Andre', 'Ángel', 'Fernando', 'Dafne', 'Rocío'
+    'Romy', 'Andre', 'Fernando', 'Dafne', 'Rocío', 'Claudio andres'
   ];
 
   const LISTA_DEFAULT = [
     'Vicho', 'Cony', 'Lucas', 'Bastian', 'Buri', 'Carlos', 'Diego', 'Catalina', 
-    'Gabi', 'Javi Rivas', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano', 
-    'Romy', 'Claudio andres', 'Sofi', 'Fernando', 'Andre', 'Conco', 'Dafne', 'Rocío'
+    'Gabi', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano', 
+    'Romy', 'Claudio andres', 'Fernando', 'Andre', 'Dafne', 'Rocío'
   ];
 
   const ENTRENO = [
