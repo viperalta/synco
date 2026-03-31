@@ -113,6 +113,7 @@ const Estadisticas = () => {
   const [selectedMatchId, setSelectedMatchId] = useState('');
   const [selectedActionType, setSelectedActionType] = useState('');
   const [selectedResult, setSelectedResult] = useState('');
+  const [hasInitializedMatch, setHasInitializedMatch] = useState(false);
 
   useEffect(() => {
     try {
@@ -129,6 +130,18 @@ const Estadisticas = () => {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(actions));
   }, [actions]);
+
+  useEffect(() => {
+    // Evitar limpiar al primer render.
+    if (!hasInitializedMatch) {
+      setHasInitializedMatch(true);
+      return;
+    }
+
+    // Al cambiar partido, limpiar acciones y cache local.
+    setActions([]);
+    localStorage.removeItem(STORAGE_KEY);
+  }, [selectedMatchId, hasInitializedMatch]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
