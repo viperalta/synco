@@ -281,7 +281,7 @@ function App() {
                       </RoleProtectedRoute>
                     } />
                     <Route path="/estadisticas" element={
-                      <RoleProtectedRoute allowedRoles={['admin', 'player', 'coach']}>
+                      <RoleProtectedRoute allowedRoles={['admin']}>
                         <Estadisticas />
                       </RoleProtectedRoute>
                     } />

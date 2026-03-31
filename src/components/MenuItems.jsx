@@ -77,10 +77,10 @@ const MenuItems = ({ onItemClick }) => {
       menuItems.push({ text: 'Ranking', icon: <MilitaryTechIcon />, path: '/ranking' });
     }
 
-    // Estadisticas - temporalmente oculto del menu
-    // if (user?.roles?.includes('admin') || user?.roles?.includes('player') || user?.roles?.includes('coach')) {
-    //   menuItems.push({ text: 'Estadisticas', icon: <AnalyticsIcon />, path: '/estadisticas' });
-    // }
+    // Estadisticas - solo administradores
+    if (user?.roles?.includes('admin')) {
+      menuItems.push({ text: 'Estadisticas', icon: <AnalyticsIcon />, path: '/estadisticas' });
+    }
 
     console.log('📋 MenuItems generados:', menuItems.map(item => item.text));
     return menuItems;
