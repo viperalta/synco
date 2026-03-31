@@ -18,6 +18,7 @@ import {
   AccountBalanceWallet as WalletIcon,
   AccountBalance as AccountBalanceIcon,
   MilitaryTech as MilitaryTechIcon,
+  Analytics as AnalyticsIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -74,6 +75,11 @@ const MenuItems = ({ onItemClick }) => {
     // Ranking - Administradores, jugadores y entrenadores
     if (user?.roles?.includes('admin') || user?.roles?.includes('player') || user?.roles?.includes('coach')) {
       menuItems.push({ text: 'Ranking', icon: <MilitaryTechIcon />, path: '/ranking' });
+    }
+
+    // Estadisticas - Administradores, jugadores y entrenadores
+    if (user?.roles?.includes('admin') || user?.roles?.includes('player') || user?.roles?.includes('coach')) {
+      menuItems.push({ text: 'Estadisticas', icon: <AnalyticsIcon />, path: '/estadisticas' });
     }
 
     console.log('📋 MenuItems generados:', menuItems.map(item => item.text));

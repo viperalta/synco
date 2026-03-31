@@ -32,6 +32,7 @@ import Pagos from './pages/Pagos';
 import MisPagos from './pages/MisPagos';
 import Deuda from './pages/Deuda';
 import ProcesarEventos from './pages/ProcesarEventos';
+import Estadisticas from './pages/Estadisticas';
 
 // Import components
 import UserProfileComponent from './components/UserProfile';
@@ -277,6 +278,11 @@ function App() {
                     <Route path="/ranking" element={
                       <RoleProtectedRoute allowedRoles={['admin', 'player', 'coach']}>
                         <ProcesarEventos />
+                      </RoleProtectedRoute>
+                    } />
+                    <Route path="/estadisticas" element={
+                      <RoleProtectedRoute allowedRoles={['admin', 'player', 'coach']}>
+                        <Estadisticas />
                       </RoleProtectedRoute>
                     } />
                   </Routes>
