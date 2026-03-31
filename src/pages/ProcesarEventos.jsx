@@ -50,6 +50,11 @@ const ProcesarEventos = () => {
   const [showRankingPasco, setShowRankingPasco] = useState(false);
   const [modalPascoOpen, setModalPascoOpen] = useState(false);
   const [selectedUserPasco, setSelectedUserPasco] = useState(null);
+  const [loadingOriente, setLoadingOriente] = useState(false);
+  const [rankingOrienteData, setRankingOrienteData] = useState([]);
+  const [showRankingOriente, setShowRankingOriente] = useState(false);
+  const [modalOrienteOpen, setModalOrienteOpen] = useState(false);
+  const [selectedUserOriente, setSelectedUserOriente] = useState(null);
   
   // ID del calendario de Google Calendar
   const calendarId = 'd7dd701e2bb45dee1e2863fddb2b15354bd4f073a1350338cb66b9ee7789f9bb@group.calendar.google.com';
@@ -61,12 +66,23 @@ const ProcesarEventos = () => {
     'Romy', 'Fernando', 'Andre'
   ];
 
+  // Lista de asistentes a LIGA ORIENTE
+  const ASISTENTES_ORIENTE = [
+    'Vicho', 'Cony', 'Lucas', 'Bastian', 'Buri', 'Carlos', 'Diego',
+    'Gabi', 'Javi Soto', 'Jorge', 'Kitsu',
+    'Romy', 'Andre', 'Fernando', 'Dafne', 'Rocío', 'Claudio andres'
+  ];
+
   // Lista de asistentes a PASCO
   const ASISTENTES_PASCO = [
     'Cony', 'Vicho', 'Buri', 'Andre', 'Bastian', 'Diego', 'Catalina', 
     'Claudio andres', 'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Lucas', 'Mariano', 
     'Romy', 'Sofi'
   ];
+
+  // Fechas de Liga Oriente
+  const ORIENTE_START_DATE = '2026-03-20';
+  const ORIENTE_END_DATE = '2026-06-20';
 
   // Función para obtener el período actual en formato YYYYMM
   const getCurrentPeriod = () => {
@@ -159,6 +175,8 @@ const ProcesarEventos = () => {
   useEffect(() => {
     const currentPeriod = getCurrentPeriod();
     setSelectedPeriod(currentPeriod);
+    // Cargar ranking de Liga Oriente automáticamente
+    loadRankingOriente();
     // Cargar ranking de Pasco automáticamente
     loadRankingPasco();
   }, []);
@@ -309,7 +327,7 @@ const ProcesarEventos = () => {
       const rankingMap = {};
       
       // Inicializar estadísticas para cada usuario
-      ENTRENO.forEach(usuario => {
+      ASISTENTES_ORIENTE.forEach(usuario => {
         rankingMap[usuario] = {
           usuario,
           asistencia: 0,
@@ -340,7 +358,7 @@ const ProcesarEventos = () => {
         });
 
         // Para cada usuario en ENTRENO, clasificar su respuesta
-        ENTRENO.forEach(usuario => {
+        ASISTENTES_ORIENTE.forEach(usuario => {
           rankingMap[usuario].total++;
 
           if (attendingUsers.has(usuario)) {
@@ -405,6 +423,148 @@ const ProcesarEventos = () => {
       setShowRanking(false);
     } finally {
       setProcessingRanking(false);
+    }
+  };
+
+  // Cargar y procesar ranking de Campeonato Pasco
+  const loadRankingOriente = async () => {
+    setLoadingOriente(true);
+    setShowRankingOriente(false);
+
+    try {
+      const endpoint = `/eventos/${calendarId}?start_date=${ORIENTE_START_DATE}&end_date=${ORIENTE_END_DATE}`;
+      console.log('Cargando eventos de Liga Oriente:', endpoint);
+
+      const response = await authenticatedApiCall(endpoint);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Error ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('Respuesta cruda Liga Oriente:', data);
+      const eventosArray = Array.isArray(data)
+        ? data
+        : (data.items || data.eventos || []);
+      console.log('Total eventos recibidos para Liga Oriente:', eventosArray.length);
+      console.log(
+        'Eventos Liga Oriente (titulo + fecha):',
+        eventosArray.map((evento) => ({
+          titulo: evento.title || evento.summary || '(sin titulo)',
+          startDateTime: evento?.start?.dateTime || null,
+          startDate: evento?.start?.date || null
+        }))
+      );
+
+      const ahora = new Date();
+      ahora.setHours(0, 0, 0, 0);
+
+      const eventosOriente = eventosArray.filter(evento => {
+        const titulo = (evento.title || evento.summary || '').toUpperCase();
+        if (!titulo.includes('LIGA ORIENTE')) {
+          return false;
+        }
+
+        let fechaInicio;
+        if (evento.start && evento.start.dateTime) {
+          fechaInicio = new Date(evento.start.dateTime);
+        } else if (evento.start && evento.start.date) {
+          fechaInicio = new Date(evento.start.date);
+        } else {
+          return false;
+        }
+
+        fechaInicio.setHours(0, 0, 0, 0);
+        return fechaInicio < ahora;
+      });
+      console.log('Eventos filtrados para ranking Liga Oriente:', eventosOriente.length, eventosOriente);
+
+      if (eventosOriente.length === 0) {
+        setRankingOrienteData([]);
+        setShowRankingOriente(false);
+        setLoadingOriente(false);
+        return;
+      }
+
+      const rankingMap = {};
+      ASISTENTES_ORIENTE.forEach(usuario => {
+        rankingMap[usuario] = {
+          usuario,
+          asistencia: 0,
+          noAsistencia: 0,
+          noResponde: 0,
+          total: 0
+        };
+      });
+
+      for (const eventoOriente of eventosOriente) {
+        const description = eventoOriente.description || '';
+        const { asistentes, noAsistentes } = parsearDescripcion(description);
+
+        const attendingUsers = new Set();
+        const notAttendingUsers = new Set();
+
+        asistentes.forEach(nombre => {
+          attendingUsers.add(nombre);
+        });
+
+        noAsistentes.forEach(nombre => {
+          notAttendingUsers.add(nombre);
+        });
+
+        ASISTENTES_ORIENTE.forEach(usuario => {
+          rankingMap[usuario].total++;
+
+          if (attendingUsers.has(usuario)) {
+            rankingMap[usuario].asistencia++;
+          } else if (notAttendingUsers.has(usuario)) {
+            rankingMap[usuario].noAsistencia++;
+          } else {
+            rankingMap[usuario].noResponde++;
+          }
+        });
+      }
+
+      const rankingArray = Object.values(rankingMap).map(stat => ({
+        ...stat,
+        porcentajeAsistencia: stat.total > 0 ? ((stat.asistencia / stat.total) * 100).toFixed(1) : '0.0',
+        porcentajeNoAsistencia: stat.total > 0 ? ((stat.noAsistencia / stat.total) * 100).toFixed(1) : '0.0',
+        porcentajeNoResponde: stat.total > 0 ? ((stat.noResponde / stat.total) * 100).toFixed(1) : '0.0'
+      }));
+
+      rankingArray.sort((a, b) => parseFloat(b.porcentajeAsistencia) - parseFloat(a.porcentajeAsistencia));
+
+      let ranking = 1;
+      rankingArray.forEach((stat, index) => {
+        if (index === 0) {
+          stat.ranking = 1;
+        } else {
+          const porcentajeActual = parseFloat(stat.porcentajeAsistencia);
+          const porcentajeAnterior = parseFloat(rankingArray[index - 1].porcentajeAsistencia);
+          if (porcentajeActual !== porcentajeAnterior) {
+            ranking = index + 1;
+          }
+          stat.ranking = ranking;
+        }
+      });
+
+      rankingArray.sort((a, b) => {
+        if (a.ranking !== b.ranking) {
+          return a.ranking - b.ranking;
+        }
+        return a.usuario.localeCompare(b.usuario, 'es');
+      });
+
+      setRankingOrienteData(rankingArray);
+      setShowRankingOriente(true);
+      console.log('✅ Ranking Liga Oriente calculado:', rankingArray);
+    } catch (error) {
+      console.error('Error procesando ranking Liga Oriente:', error);
+      setRankingOrienteData([]);
+      setShowRankingOriente(false);
+    } finally {
+      setLoadingOriente(false);
     }
   };
 
@@ -829,6 +989,150 @@ const ProcesarEventos = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Sección Ranking Liga Oriente */}
+      {loadingOriente && (
+        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', p: 4 }}>
+          <CircularProgress />
+        </Box>
+      )}
+
+      {showRankingOriente && rankingOrienteData.length > 0 && (
+        <Box sx={{ mt: 6 }}>
+          <Typography variant="h5" component="h2" sx={{ mb: 1, fontWeight: 'bold' }}>
+            Ranking Liga Oriente
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Datos desde el 20 de marzo al 20 de junio
+          </Typography>
+
+          <TableContainer component={Paper} sx={{ overflowX: 'auto', width: '100%' }}>
+            <Table sx={{ minWidth: isMobile ? 300 : 650 }}>
+              <TableHead>
+                <TableRow sx={{ backgroundColor: 'primary.main' }}>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: isMobile ? 80 : 'auto' }} align="center">
+                    Ranking
+                  </TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: isMobile ? 120 : 'auto' }}>Usuario</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: isMobile ? 100 : 'auto' }} align="center">
+                    {isMobile ? 'Asistencias(%)' : 'Asistencias'}
+                  </TableCell>
+                  {!isMobile && (
+                    <>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">
+                        % Asistencia
+                      </TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">
+                        No Asistencia
+                      </TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">
+                        % No Asistencia
+                      </TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">
+                        No Responde
+                      </TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">
+                        % No Responde
+                      </TableCell>
+                    </>
+                  )}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {rankingOrienteData.map((stat) => (
+                  <TableRow
+                    key={stat.usuario}
+                    hover
+                    onClick={() => {
+                      if (isMobile) {
+                        setSelectedUserOriente(stat);
+                        setModalOrienteOpen(true);
+                      }
+                    }}
+                    sx={{
+                      cursor: isMobile ? 'pointer' : 'default',
+                      minWidth: isMobile ? 120 : 'auto',
+                      '&:hover': isMobile ? { backgroundColor: 'action.hover' } : {}
+                    }}
+                  >
+                    <TableCell align="center" sx={{ minWidth: isMobile ? 80 : 'auto' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                        <Typography variant="body2" fontWeight="bold" sx={{ fontSize: '1.1rem' }}>
+                          {stat.ranking}
+                        </Typography>
+                        {stat.ranking <= 3 && (
+                          <MilitaryTechIcon
+                            sx={{
+                              fontSize: '1.2rem',
+                              color: stat.ranking === 1 ? '#FFD700' :
+                                     stat.ranking === 2 ? '#C0C0C0' :
+                                     '#CD7F32'
+                            }}
+                          />
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontWeight: 'medium',
+                        minWidth: isMobile ? 120 : 'auto'
+                      }}
+                    >
+                      {stat.usuario}
+                    </TableCell>
+                    <TableCell align="center" sx={{ minWidth: isMobile ? 100 : 'auto' }}>
+                      {isMobile ? (
+                        <Typography variant="body2" fontWeight="bold">
+                          {stat.asistencia} ({stat.porcentajeAsistencia}%)
+                        </Typography>
+                      ) : (
+                        <Chip
+                          label={stat.asistencia}
+                          color="success"
+                          size="small"
+                        />
+                      )}
+                    </TableCell>
+                    {!isMobile && (
+                      <>
+                        <TableCell align="center">
+                          <Typography variant="body2" color="success.main" fontWeight="bold">
+                            {stat.porcentajeAsistencia}%
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip
+                            label={stat.noAsistencia}
+                            color="error"
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Typography variant="body2" color="error.main" fontWeight="bold">
+                            {stat.porcentajeNoAsistencia}%
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip
+                            label={stat.noResponde}
+                            color="warning"
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Typography variant="body2" color="warning.main" fontWeight="bold">
+                            {stat.porcentajeNoResponde}%
+                          </Typography>
+                        </TableCell>
+                      </>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+      )}
+
       {/* Sección Ranking Campeonato Pasco */}
       {loadingPasco && (
         <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -1050,6 +1354,82 @@ const ProcesarEventos = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setModalPascoOpen(false)} color="primary">
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal para mostrar información completa de Liga Oriente en mobile */}
+      <Dialog
+        open={modalOrienteOpen}
+        onClose={() => setModalOrienteOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          {selectedUserOriente?.usuario}
+        </DialogTitle>
+        <DialogContent>
+          {selectedUserOriente && (
+            <Box sx={{ mt: 2 }}>
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Ranking: {selectedUserOriente.ranking}
+                </Typography>
+              </Box>
+
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" color="success.main" fontWeight="bold" gutterBottom>
+                  Asistencias
+                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Chip
+                    label={selectedUserOriente.asistencia}
+                    color="success"
+                    size="small"
+                  />
+                  <Typography variant="body2" color="success.main" fontWeight="bold">
+                    {selectedUserOriente.porcentajeAsistencia}%
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" color="error.main" fontWeight="bold" gutterBottom>
+                  No Asistencia
+                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Chip
+                    label={selectedUserOriente.noAsistencia}
+                    color="error"
+                    size="small"
+                  />
+                  <Typography variant="body2" color="error.main" fontWeight="bold">
+                    {selectedUserOriente.porcentajeNoAsistencia}%
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" color="warning.main" fontWeight="bold" gutterBottom>
+                  No Responde
+                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Chip
+                    label={selectedUserOriente.noResponde}
+                    color="warning"
+                    size="small"
+                  />
+                  <Typography variant="body2" color="warning.main" fontWeight="bold">
+                    {selectedUserOriente.porcentajeNoResponde}%
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setModalOrienteOpen(false)} color="primary">
             Cerrar
           </Button>
         </DialogActions>

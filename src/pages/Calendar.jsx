@@ -501,7 +501,7 @@ const Calendar = () => {
 
   const ASISTENTES_ORIENTE = [
     'Vicho', 'Cony', 'Lucas', 'Bastian', 'Buri', 'Carlos', 'Diego',
-    'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Mariano', 
+    'Gabi', 'Javi Soto', 'Jorge', 'Kitsu',
     'Romy', 'Andre', 'Fernando', 'Dafne', 'Rocío', 'Claudio andres'
   ];
 

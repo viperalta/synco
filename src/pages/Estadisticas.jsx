@@ -6,6 +6,7 @@ import {
   Chip,
   CircularProgress,
   FormControl,
+  IconButton,
   InputLabel,
   MenuItem,
   Paper,
@@ -20,6 +21,7 @@ import {
   Typography,
 } from '@mui/material';
 import {
+  Delete as DeleteIcon,
   Download as DownloadIcon,
   Save as SaveIcon,
 } from '@mui/icons-material';
@@ -279,6 +281,10 @@ const Estadisticas = () => {
     setActions((prev) => [newAction, ...prev]);
     setSelectedActionType('');
     setSelectedResult('');
+  };
+
+  const handleDeleteAction = (actionId) => {
+    setActions((prev) => prev.filter((action) => action.id !== actionId));
   };
 
   const handleDownloadExcel = async () => {
@@ -651,6 +657,61 @@ const Estadisticas = () => {
                 </TableRow>
               </TableFooter>
             )}
+          </Table>
+        </TableContainer>
+      </Paper>
+
+      <Paper sx={{ p: 2, mt: 3 }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          Log de acciones registradas
+        </Typography>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Fecha registro</TableCell>
+                <TableCell>Jugador(a)</TableCell>
+                <TableCell>Partido</TableCell>
+                <TableCell>Tipo de acción</TableCell>
+                <TableCell>Resultado</TableCell>
+                <TableCell align="center">Eliminar</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {actions.map((action) => (
+                <TableRow key={action.id}>
+                  <TableCell>{new Date(action.timestamp).toLocaleString('es-CL')}</TableCell>
+                  <TableCell>{action.userName}</TableCell>
+                  <TableCell>{action.matchName}</TableCell>
+                  <TableCell>{action.actionType}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={action.result}
+                      size="small"
+                      color={action.result === 'EXITOSO' ? 'success' : 'error'}
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    <IconButton
+                      color="error"
+                      size="small"
+                      onClick={() => handleDeleteAction(action.id)}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {actions.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      No hay acciones registradas para mostrar en el log.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
           </Table>
         </TableContainer>
       </Paper>
