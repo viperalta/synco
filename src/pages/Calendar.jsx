@@ -106,6 +106,15 @@ const Calendar = () => {
     });
   };
 
+  // Helper: construir clave de fecha local "YYYY-MM-DD" sin convertir a UTC.
+  const getLocalDateKey = (date) => {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Fetch eventos from API when component mounts
   useEffect(() => {
     const fetchEventos = async () => {
@@ -735,14 +744,14 @@ const Calendar = () => {
     if (!items || items.length === 0) return [];
     
     const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-    const targetDateString = targetDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const targetDateString = getLocalDateKey(targetDate); // YYYY-MM-DD format en hora local
     
     const filteredEvents = items.filter(event => {
       if (event.start) {
         // Eventos con hora específica (start.dateTime)
         if (event.start.dateTime) {
           const eventDate = new Date(event.start.dateTime);
-          const eventDateString = eventDate.toISOString().split('T')[0];
+          const eventDateString = getLocalDateKey(eventDate);
           return eventDateString === targetDateString;
         }
         
@@ -766,7 +775,7 @@ const Calendar = () => {
         if (event.start) {
           if (event.start.dateTime) {
             const eventDate = new Date(event.start.dateTime);
-            const eventDateString = eventDate.toISOString().split('T')[0];
+            const eventDateString = getLocalDateKey(eventDate);
             console.log(`📝 Evento ${index + 1}: "${event.summary}" - Fecha: ${eventDateString} (dateTime) - Match: ${eventDateString === targetDateString}`);
           } else if (event.start.date) {
             console.log(`📝 Evento ${index + 1}: "${event.summary}" - Fecha: ${event.start.date} (date) - Match: ${event.start.date === targetDateString}`);
