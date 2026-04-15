@@ -237,6 +237,10 @@ const Pagos = () => {
       if (response.ok) {
         const debtData = await response.json();
         const debtors = debtData.debtors || [];
+        const debtorsWithPositiveDebt = debtors.filter((debtor) => {
+          const debtAmount = Number(debtor?.amount);
+          return Number.isFinite(debtAmount) && debtAmount > 0;
+        });
         
         // Crear mapa de pagos por usuario (solo verified y pending)
         const paymentsByUser = {};
@@ -250,7 +254,7 @@ const Pagos = () => {
         });
         
         // Crear resumen con deuda y pagos
-        const summary = debtors.map(debtor => {
+        const summary = debtorsWithPositiveDebt.map(debtor => {
           const totalPaid = paymentsByUser[debtor.user_id] || 0;
           const isPaid = totalPaid >= debtor.amount;
           
