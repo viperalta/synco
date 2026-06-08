@@ -62,7 +62,7 @@ const ProcesarEventos = () => {
   // Lista de asistentes a ENTRENO
   const ENTRENO = [
     'Vicho', 'Cony', 'Lucas', 'Bastian', 'Buri', 'Diego', 'Catalina', 
-    'Gabi', 'Javi Rivas', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano', 
+    'Gabi', 'Gonzalo', 'Javi Rivas', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano', 
     'Romy', 'Fernando', 'Andre'
   ];
 

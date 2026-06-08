@@ -72,7 +72,7 @@ const LISTA_DEFAULT = [
 
 const ENTRENO = [
   'Vicho', 'Cony', 'Lucas', 'Bastian', 'Buri', 'Diego', 'Catalina',
-  'Gabi', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano',
+  'Gabi', 'Gonzalo', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano',
   'Romy', 'Fernando', 'Andre', 'Ángel', 'Dafne', 'Rocío',
 ];
 
