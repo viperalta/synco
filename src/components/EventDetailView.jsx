@@ -67,7 +67,7 @@ const ASISTENTES_ORIENTE = [
 const LISTA_DEFAULT = [
   'Vicho', 'Cony', 'Lucas', 'Bastian', 'Buri', 'Carlos', 'Diego', 'Catalina',
   'Gabi', 'Javi Rivas', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano',
-  'Romy', 'Claudio andres', 'Sofi', 'Fernando', 'Andre', 'Conco', 'Dafne', 'Rocío',
+  'Romy', 'Claudio andres', 'Sofi', 'Fernando', 'Andre', 'Conco', 'Dafne', 'Rocío','Gonzalo'
 ];
 
 const ENTRENO = [
