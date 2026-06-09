@@ -61,21 +61,21 @@ const ProcesarEventos = () => {
   
   // Lista de asistentes a ENTRENO
   const ENTRENO = [
-    'Vicho', 'Cony', 'Lucas', 'Bastian', 'Buri', 'Diego', 'Catalina', 
+    'Vicho', 'Lucas', 'Bastian', 'Buri', 'Diego', 'Catalina', 
     'Gabi', 'Gonzalo', 'Javi Rivas', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano', 
     'Romy', 'Fernando', 'Andre'
   ];
 
   // Lista de asistentes a LIGA ORIENTE
   const ASISTENTES_ORIENTE = [
-    'Vicho', 'Cony', 'Lucas', 'Bastian', 'Buri', 'Carlos', 'Diego',
+    'Vicho', 'Lucas', 'Bastian', 'Buri', 'Carlos', 'Diego',
     'Gabi', 'Javi Soto', 'Jorge', 'Kitsu',
     'Romy', 'Andre', 'Fernando', 'Dafne', 'Rocío', 'Claudio andres'
   ];
 
   // Lista de asistentes a PASCO
   const ASISTENTES_PASCO = [
-    'Cony', 'Vicho', 'Buri', 'Andre', 'Bastian', 'Diego', 'Catalina', 
+    'Vicho', 'Buri', 'Andre', 'Bastian', 'Diego', 'Catalina', 
     'Claudio andres', 'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Lucas', 'Mariano', 
     'Romy', 'Sofi'
   ];
