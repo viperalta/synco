@@ -501,7 +501,7 @@ const Calendar = () => {
     setAttendeeToDelete(null);
   };
 
-  // Listas de asistentes por tipo de evento
+  // Listas de asistentes por tipo de evento.
   const ASISTENTES_PASCO = [
     'Vicho', 'Buri', 'Andre', 'Bastian', 'Diego', 'Catalina', 
     'Claudio andres', 'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Lucas', 'Mariano', 
