@@ -38,6 +38,8 @@ import {
   Close as CloseIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
+  Cookie as CookieIcon,
+  Add as AddIcon,
 } from '@mui/icons-material';
 import logoPasco from '../assets/logo-pasco.jpg';
 import logoOriente from '../assets/logo-oriente.png';
@@ -51,7 +53,7 @@ import logoMishigang from '../assets/logo-mishigang.jpg';
 import logoWakan from '../assets/logo-wakan.png';
 
 const Calendar = () => {
-  const { user } = useAuth();
+  const { user, authenticatedApiCall } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [items, setItems] = useState([]);
@@ -67,6 +69,10 @@ const Calendar = () => {
   const [totalAttendees, setTotalAttendees] = useState(0);
   const [nonAttendees, setNonAttendees] = useState([]);
   const [totalNonAttendees, setTotalNonAttendees] = useState(0);
+  const [guests, setGuests] = useState([]);
+  const [guestName, setGuestName] = useState('');
+  const [savingGuest, setSavingGuest] = useState(false);
+  const [deletingGuest, setDeletingGuest] = useState(null);
   const [loadingAttendees, setLoadingAttendees] = useState(false);
   const [deletingAttendee, setDeletingAttendee] = useState(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -357,11 +363,15 @@ const Calendar = () => {
       setTotalAttendees(data.total_attendees || 0);
       setNonAttendees(data.non_attendees || []);
       setTotalNonAttendees(data.total_non_attendees || 0);
+      setGuests(data.guests || []);
       
     } catch (err) {
       console.error('Error al obtener asistentes:', err);
       setAttendees([]);
       setTotalAttendees(0);
+      setNonAttendees([]);
+      setTotalNonAttendees(0);
+      setGuests([]);
     } finally {
       setLoadingAttendees(false);
     }
@@ -387,7 +397,8 @@ const Calendar = () => {
             attendees: data.attendees || [],
             totalAttendees: data.total_attendees || 0,
             nonAttendees: data.non_attendees || [],
-            totalNonAttendees: data.total_non_attendees || 0
+            totalNonAttendees: data.total_non_attendees || 0,
+            guests: data.guests || [],
           };
         } catch (err) {
           console.error(`Error al obtener asistentes para ${match.summary}:`, err);
@@ -396,7 +407,8 @@ const Calendar = () => {
             attendees: [],
             totalAttendees: 0,
             nonAttendees: [],
-            totalNonAttendees: 0
+            totalNonAttendees: 0,
+            guests: [],
           };
         }
       });
@@ -411,7 +423,8 @@ const Calendar = () => {
           attendees: result.attendees,
           totalAttendees: result.totalAttendees,
           nonAttendees: result.nonAttendees,
-          totalNonAttendees: result.totalNonAttendees
+          totalNonAttendees: result.totalNonAttendees,
+          guests: result.guests,
         };
       });
       
@@ -434,6 +447,10 @@ const Calendar = () => {
     setTotalAttendees(0);
     setNonAttendees([]);
     setTotalNonAttendees(0);
+    setGuests([]);
+    setGuestName('');
+    setSavingGuest(false);
+    setDeletingGuest(null);
     setLoadingAttendees(false);
     setDeletingAttendee(null);
     setConfirmDeleteOpen(false);
@@ -442,6 +459,60 @@ const Calendar = () => {
     setLogoAnimationPhase('idle');
     setCurrentChuruLogoIndex(0);
     setIsLogoHovered(false);
+  };
+
+  const handleAddGuest = async (event) => {
+    event.preventDefault();
+    const normalizedName = guestName.trim();
+    if (!selectedEvent?.id || !normalizedName) return;
+
+    try {
+      setSavingGuest(true);
+      const response = await authenticatedApiCall(`/galletas/${selectedEvent.id}`, {
+        method: 'POST',
+        body: JSON.stringify({ guest_name: normalizedName }),
+      });
+      const data = await response.json();
+      setGuests(data.guests || []);
+      setGuestName('');
+      setAttendanceMessage(`${normalizedName} fue agregado como galleta`);
+      setSnackbarOpen(true);
+
+      if (nextMatches.some((match) => match.id === selectedEvent.id)) {
+        await fetchNextMatchesAttendance(nextMatches);
+      }
+    } catch (err) {
+      console.error('Error al agregar galleta:', err);
+      setAttendanceMessage(`Error al agregar galleta: ${err.message}`);
+      setSnackbarOpen(true);
+    } finally {
+      setSavingGuest(false);
+    }
+  };
+
+  const handleDeleteGuest = async (name) => {
+    if (!selectedEvent?.id) return;
+
+    try {
+      setDeletingGuest(name);
+      await authenticatedApiCall(`/galletas/${selectedEvent.id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ guest_name: name }),
+      });
+      setGuests((currentGuests) => currentGuests.filter((guest) => guest !== name));
+      setAttendanceMessage(`${name} fue eliminado de las galletas`);
+      setSnackbarOpen(true);
+
+      if (nextMatches.some((match) => match.id === selectedEvent.id)) {
+        await fetchNextMatchesAttendance(nextMatches);
+      }
+    } catch (err) {
+      console.error('Error al eliminar galleta:', err);
+      setAttendanceMessage(`Error al eliminar galleta: ${err.message}`);
+      setSnackbarOpen(true);
+    } finally {
+      setDeletingGuest(null);
+    }
   };
 
   const handleDeleteAttendee = (attendeeName) => {
@@ -1232,7 +1303,8 @@ const Calendar = () => {
                   attendees: [],
                   totalAttendees: 0,
                   nonAttendees: [],
-                  totalNonAttendees: 0
+                  totalNonAttendees: 0,
+                  guests: [],
                 };
                 
                 return (
@@ -1446,6 +1518,35 @@ const Calendar = () => {
                                     color: 'warning.contrastText',
                                     fontSize: '0.7rem',
                                     height: 20
+                                  }}
+                                />
+                              ))}
+                            </Box>
+                          </Box>
+                        )}
+
+                        {attendanceData.guests.length > 0 && (
+                          <Box sx={{ p: 2, backgroundColor: 'grey.100', borderRadius: 1 }}>
+                            <Typography
+                              variant="body2"
+                              sx={{ display: 'flex', alignItems: 'center', gap: 0.75, fontWeight: 'bold', mb: 1 }}
+                            >
+                              <CookieIcon sx={{ color: '#8d5a2b', fontSize: 18 }} />
+                              Galletas ({attendanceData.guests.length})
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {attendanceData.guests.map((guest) => (
+                                <Chip
+                                  key={guest}
+                                  icon={<CookieIcon />}
+                                  label={guest}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{
+                                    backgroundColor: 'background.paper',
+                                    fontSize: '0.7rem',
+                                    height: 22,
+                                    '& .MuiChip-icon': { color: '#8d5a2b', fontSize: 15 },
                                   }}
                                 />
                               ))}
@@ -1938,7 +2039,7 @@ const Calendar = () => {
                     </Box>
 
                     {/* Non Attendees Section */}
-                    <Box sx={{ p: 3, backgroundColor: 'warning.light', borderRadius: 1, mb: 1 }}>
+                    <Box sx={{ p: 3, backgroundColor: 'warning.light', borderRadius: 1, mb: 3 }}>
                       <Typography variant="h6" gutterBottom sx={{ 
                         color: 'warning.contrastText', 
                         display: 'flex', 
@@ -2009,6 +2110,76 @@ const Calendar = () => {
                         </Typography>
                       )}
                     </Box>
+
+                    {(guests.length > 0 || user?.roles?.includes('admin')) && (
+                      <Box sx={{ p: 3, backgroundColor: 'grey.100', borderRadius: 1, mb: 1 }}>
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            fontSize: { xs: '1rem', sm: '1.25rem' },
+                          }}
+                        >
+                          <CookieIcon sx={{ color: '#8d5a2b' }} />
+                          Galletas ({guests.length})
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                          Participan en este evento, sin contar en la lista de asistencia.
+                        </Typography>
+
+                        {guests.length > 0 && (
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
+                            {guests.map((guest) => (
+                              <Chip
+                                key={guest}
+                                icon={<CookieIcon />}
+                                label={guest}
+                                variant="outlined"
+                                onDelete={user?.roles?.includes('admin') ? () => handleDeleteGuest(guest) : undefined}
+                                disabled={deletingGuest === guest}
+                                sx={{
+                                  backgroundColor: 'background.paper',
+                                  '& .MuiChip-icon': { color: '#8d5a2b' },
+                                }}
+                              />
+                            ))}
+                          </Box>
+                        )}
+
+                        {user?.roles?.includes('admin') && (
+                          <Box
+                            component="form"
+                            onSubmit={handleAddGuest}
+                            sx={{
+                              display: 'flex',
+                              gap: 1,
+                              mt: 2,
+                              flexDirection: { xs: 'column', sm: 'row' },
+                            }}
+                          >
+                            <TextField
+                              value={guestName}
+                              onChange={(event) => setGuestName(event.target.value)}
+                              label="Nombre de la galleta"
+                              size="small"
+                              inputProps={{ maxLength: 80 }}
+                              fullWidth
+                            />
+                            <Button
+                              type="submit"
+                              variant="contained"
+                              startIcon={savingGuest ? <CircularProgress size={16} color="inherit" /> : <AddIcon />}
+                              disabled={savingGuest || !guestName.trim()}
+                              sx={{ whiteSpace: 'nowrap', flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
+                            >
+                              Agregar galleta
+                            </Button>
+                          </Box>
+                        )}
+                      </Box>
+                    )}
                   </>
                 )}
 

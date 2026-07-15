@@ -246,7 +246,7 @@ const ProcesarEventos = () => {
     const noAsistentes = [];
 
     // Buscar sección de asistentes confirmados
-    const asistentesMatch = description.match(/✅ ASISTENTES CONFIRMADOS:\s*\n([\s\S]*?)(?=❌|$)/);
+    const asistentesMatch = description.match(/✅ ASISTENTES CONFIRMADOS:\s*\n([\s\S]*?)(?=❌|🍪|$)/);
     if (asistentesMatch) {
       const asistentesText = asistentesMatch[1];
       // Extraer nombres (formato: "1. Nombre" o solo "Nombre")
@@ -261,7 +261,7 @@ const ProcesarEventos = () => {
     }
 
     // Buscar sección de no asistentes
-    const noAsistentesMatch = description.match(/❌ NO ASISTIRÁN:\s*\n([\s\S]*?)(?=🕒|$)/);
+    const noAsistentesMatch = description.match(/❌ NO ASISTIRÁN:\s*\n([\s\S]*?)(?=🕒|🍪|$)/);
     if (noAsistentesMatch) {
       const noAsistentesText = noAsistentesMatch[1];
       // Extraer nombres (formato: "1. Nombre" o solo "Nombre")
