@@ -63,21 +63,21 @@ const ProcesarEventos = () => {
   const ENTRENO = [
     'Vicho', 'Lucas', 'Bastian', 'Buri', 'Diego', 'Catalina', 
     'Gabi', 'Gonzalo', 'Javi Rivas', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano', 
-    'Romy', 'Fernando', 'Andre'
+    'Romy', 'Fernando', 'Andre', 'Coté'
   ];
 
   // Lista de asistentes a LIGA ORIENTE
   const ASISTENTES_ORIENTE = [
     'Vicho', 'Lucas', 'Bastian', 'Buri', 'Carlos', 'Diego',
     'Gabi', 'Javi Soto', 'Jorge', 'Kitsu',
-    'Romy', 'Andre', 'Fernando', 'Dafne', 'Rocío', 'Claudio andres'
+    'Romy', 'Andre', 'Fernando', 'Dafne', 'Rocío', 'Claudio andres', 'Coté'
   ];
 
   // Lista de asistentes a PASCO
   const ASISTENTES_PASCO = [
     'Vicho', 'Buri', 'Andre', 'Bastian', 'Diego', 'Catalina', 
     'Claudio andres', 'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Lucas', 'Mariano', 
-    'Romy', 'Sofi'
+    'Romy', 'Sofi', 'Coté'
   ];
 
   // Fechas de Liga Oriente
