@@ -62,8 +62,8 @@ const ASISTENTES_PASCO = [
 
 const ASISTENTES_ORIENTE = [
   'Vicho', 'Lucas', 'Buri', 'Diego', 'Catalina',
-  'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Mariano', 'Kevin',
-  'Romy', 'Ángel', 'Fernando', 'Dafne', 'Rocío', 'Coté',
+  'Gabi', 'Javi Soto', 'Kitsu', 'Mariano', 'Kevin',
+  'Romy', 'Ángel', 'Fernando', 'Dafne', 'Rocío', 'Coté', 'Gonzalo',
 ];
 
 const LISTA_DEFAULT = [

@@ -69,8 +69,8 @@ const ProcesarEventos = () => {
   // Lista de asistentes a LIGA ORIENTE
   const ASISTENTES_ORIENTE = [
     'Vicho', 'Lucas', 'Buri', 'Diego',
-    'Gabi', 'Javi Soto', 'Jorge', 'Kitsu',
-    'Romy', 'Fernando', 'Dafne', 'Rocío', 'Kevin', 'Mariano', 'Coté'
+    'Gabi', 'Javi Soto', 'Kitsu',
+    'Romy', 'Fernando', 'Dafne', 'Rocío', 'Kevin', 'Mariano', 'Coté', 'Gonzalo'
   ];
 
   // Lista de asistentes a PASCO
