@@ -580,9 +580,9 @@ const Calendar = () => {
   ];
 
   const ASISTENTES_ORIENTE = [
-    'Vicho', 'Lucas', 'Bastian', 'Buri', 'Carlos', 'Diego',
+    'Vicho', 'Lucas', 'Buri', 'Diego',
     'Gabi', 'Javi Soto', 'Jorge', 'Kitsu',
-    'Romy', 'Andre', 'Fernando', 'Dafne', 'Rocío', 'Claudio andres', 'Coté'
+    'Romy', 'Fernando', 'Dafne', 'Rocío', 'Kevin', 'Mariano'
   ];
 
   const LISTA_DEFAULT = [
