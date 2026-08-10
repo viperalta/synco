@@ -61,23 +61,23 @@ const ProcesarEventos = () => {
   
   // Lista de asistentes a ENTRENO
   const ENTRENO = [
-    'Vicho', 'Lucas', 'Bastian', 'Buri', 'Diego', 'Catalina', 
-    'Gabi', 'Gonzalo', 'Javi Rivas', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano', 
-    'Romy', 'Fernando', 'Andre', 'Coté'
+    'Vicho', 'Lucas', 'Bastian', 'Buri', 'Diego', 'Catalina',
+    'Gabi', 'Gonzalo', 'Javi Rivas', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano',
+    'Romy', 'Fernando', 'Andre', 'Coté', 'Javo'
   ];
 
   // Lista de asistentes a LIGA ORIENTE
   const ASISTENTES_ORIENTE = [
     'Vicho', 'Lucas', 'Buri', 'Diego',
     'Gabi', 'Javi Soto', 'Kitsu',
-    'Romy', 'Fernando', 'Dafne', 'Rocío', 'Kevin', 'Mariano', 'Coté', 'Gonzalo'
+    'Romy', 'Fernando', 'Dafne', 'Rocío', 'Kevin', 'Mariano', 'Coté', 'Gonzalo', 'Javo'
   ];
 
   // Lista de asistentes a PASCO
   const ASISTENTES_PASCO = [
-    'Vicho', 'Buri', 'Andre', 'Bastian', 'Diego', 'Catalina', 
-    'Claudio andres', 'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Lucas', 'Mariano', 
-    'Romy', 'Sofi', 'Coté'
+    'Vicho', 'Buri', 'Andre', 'Bastian', 'Diego', 'Catalina',
+    'Claudio andres', 'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Lucas', 'Mariano',
+    'Romy', 'Sofi', 'Coté', 'Javo'
   ];
 
   // Fechas de Liga Oriente

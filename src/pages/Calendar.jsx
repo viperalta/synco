@@ -574,27 +574,27 @@ const Calendar = () => {
 
   // Listas de asistentes por tipo de evento.
   const ASISTENTES_PASCO = [
-    'Vicho', 'Buri', 'Andre', 'Bastian', 'Diego', 'Catalina', 
-    'Claudio andres', 'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Lucas', 'Mariano', 
-    'Romy', 'Fernando', 'Dafne', 'Coté'
+    'Vicho', 'Buri', 'Andre', 'Bastian', 'Diego', 'Catalina',
+    'Claudio andres', 'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Lucas', 'Mariano',
+    'Romy', 'Fernando', 'Dafne', 'Coté', 'Javo'
   ];
 
   const ASISTENTES_ORIENTE = [
     'Vicho', 'Lucas', 'Buri', 'Diego',
     'Gabi', 'Javi Soto', 'Kitsu',
-    'Romy', 'Fernando', 'Dafne', 'Rocío', 'Kevin', 'Mariano', 'Coté', 'Gonzalo'
+    'Romy', 'Fernando', 'Dafne', 'Rocío', 'Kevin', 'Mariano', 'Coté', 'Gonzalo', 'Javo'
   ];
 
   const LISTA_DEFAULT = [
-    'Vicho', 'Lucas', 'Bastian', 'Buri', 'Carlos', 'Diego', 'Catalina', 
-    'Gabi', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano', 
-    'Romy', 'Claudio andres', 'Fernando', 'Andre', 'Dafne', 'Rocío', 'Gonzalo', 'Coté'
+    'Vicho', 'Lucas', 'Bastian', 'Buri', 'Carlos', 'Diego', 'Catalina',
+    'Gabi', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano',
+    'Romy', 'Claudio andres', 'Fernando', 'Andre', 'Dafne', 'Rocío', 'Gonzalo', 'Coté', 'Javo'
   ];
 
   const ENTRENO = [
-    'Vicho', 'Lucas', 'Bastian', 'Buri', 'Diego', 'Catalina', 
-    'Gabi', 'Gonzalo', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano', 
-    'Romy', 'Fernando', 'Andre', 'Ángel', 'Dafne', 'Rocío', 'Coté'
+    'Vicho', 'Lucas', 'Bastian', 'Buri', 'Diego', 'Catalina',
+    'Gabi', 'Gonzalo', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano',
+    'Romy', 'Fernando', 'Andre', 'Ángel', 'Dafne', 'Rocío', 'Coté', 'Javo'
   ];
 
   // Función para obtener la lista de asistentes según el tipo de evento

@@ -57,25 +57,25 @@ const isInformationalEvent = (eventSummary) => {
 const ASISTENTES_PASCO = [
   'Vicho', 'Buri', 'Andre', 'Bastian', 'Diego', 'Catalina',
   'Claudio andres', 'Gabi', 'Javi Soto', 'Jorge', 'Kitsu', 'Lucas', 'Mariano',
-  'Romy', 'Sofi', 'Fernando', 'Dafne', 'Coté',
+  'Romy', 'Sofi', 'Fernando', 'Dafne', 'Coté', 'Javo',
 ];
 
 const ASISTENTES_ORIENTE = [
   'Vicho', 'Lucas', 'Buri', 'Diego', 'Catalina',
   'Gabi', 'Javi Soto', 'Kitsu', 'Mariano', 'Kevin',
-  'Romy', 'Ángel', 'Fernando', 'Dafne', 'Rocío', 'Coté', 'Gonzalo',
+  'Romy', 'Ángel', 'Fernando', 'Dafne', 'Rocío', 'Coté', 'Gonzalo', 'Javo',
 ];
 
 const LISTA_DEFAULT = [
   'Vicho', 'Lucas', 'Bastian', 'Buri', 'Carlos', 'Diego', 'Catalina',
   'Gabi', 'Javi Rivas', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano',
-  'Romy', 'Claudio andres', 'Sofi', 'Fernando', 'Andre', 'Conco', 'Dafne', 'Rocío','Gonzalo', 'Coté'
+  'Romy', 'Claudio andres', 'Sofi', 'Fernando', 'Andre', 'Conco', 'Dafne', 'Rocío','Gonzalo', 'Coté', 'Javo'
 ];
 
 const ENTRENO = [
   'Vicho', 'Lucas', 'Bastian', 'Buri', 'Diego', 'Catalina',
   'Gabi', 'Gonzalo', 'Javi Soto', 'Jorge', 'Kev', 'Kitsu', 'Mariano',
-  'Romy', 'Fernando', 'Andre', 'Ángel', 'Dafne', 'Rocío', 'Coté',
+  'Romy', 'Fernando', 'Andre', 'Ángel', 'Dafne', 'Rocío', 'Coté', 'Javo',
 ];
 
 const getLeagueLogo = (eventSummary) => {
